@@ -41,6 +41,8 @@ use App\Http\Controllers\HomeController;
  use App\Http\Controllers\EntrepriseDossierController;
  use App\Http\Controllers\Admin\ActivityCategoryController;
 
+use App\Http\Controllers\NewsController;
+use App\Http\Controllers\EventController;
 
 /*
 |--------------------------------------------------------------------------
@@ -53,10 +55,19 @@ use App\Http\Controllers\HomeController;
 // صفحة تأكيد إعادة تعيين كلمة المرور
 Route::get('/home', [HomeController::class, 'index'])->name('home');
 
-Route::get('/', function () {
+/*Route::get('/', function () {
     return view('welcome');
-})->name('home');
+})->name('home');*/
+Route::get('/', [HomeController::class, 'welcome'])->name('welcome');
 
+
+Route::get('/events/{id}', [EventController::class, 'show'])
+    ->whereNumber('id')
+    ->name('events.show');
+
+     Route::get('/news/{id}', [NewsController::class, 'show'])
+     ->whereNumber('id')
+     ->name('news.show');
 
 /*
 |--------------------------------------------------------------------------
@@ -236,7 +247,19 @@ Route::middleware(['auth','entreprise'])->group(function () {
 
 // ⭐ Dashboard Admin
 
+
+
+
+
 Route::middleware(['auth','admin'])->group(function () {
+
+
+
+
+
+Route::resource('news', NewsController::class)->except(['show']);;
+Route::resource('events', EventController::class)->except(['show']);;
+    
 
 Route::resource('persons', PersonsController::class);
 Route::resource('activity-categories',ActivityCategoryController::class );

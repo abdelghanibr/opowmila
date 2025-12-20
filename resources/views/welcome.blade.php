@@ -10,9 +10,67 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <link href="{{ asset('css/welcome.css') }}" rel="stylesheet">
+    
+    <style>
+        body{
+            font-family:'Cairo',sans-serif;
+            background:#f7f8fb;
+        }
+
+        /* ===== 2026 Card System ===== */
+        .card-2026{
+            background:#fff;
+            border-radius:22px;
+            padding:22px;
+            height:100%;
+            box-shadow:0 12px 32px rgba(0,0,0,.08);
+            transition:.35s;
+            display:flex;
+            flex-direction:column;
+            justify-content:space-between;
+        }
+        .card-2026:hover{
+            transform:translateY(-6px);
+            box-shadow:0 18px 45px rgba(0,0,0,.14);
+        }
+
+        .card-img-circle{
+            width:88px;
+            height:88px;
+            border-radius:50%;
+            overflow:hidden;
+            margin:0 auto 14px;
+        }
+        .card-img-circle img{
+            width:100%;
+            height:100%;
+            object-fit:cover;
+        }
+
+        .section-title{
+            font-weight:900;
+            margin-bottom:30px;
+        }
+
+        .btn-2026{
+            border-radius:999px;
+            font-size:.85rem;
+            padding:6px 18px;
+        }
+
+        @media(max-width:576px){
+            .section-title{font-size:1.3rem;text-align:center}
+        }
+    </style>
 </head>
 <body>
-
+@php
+    if (app()->environment('local')) {
+        $storageUrl = '/storage';
+    } else {
+        $storageUrl = rtrim(env('PUBLIC_STORAGE_URL'), '/');
+    }
+@endphp
 <!-- NAVBAR -->
 <nav class="navbar navbar-expand-lg navbar-main sticky-top">
     <div class="container">
@@ -115,132 +173,208 @@
 
     </div>
 
- <h2 class="section-title" id="news">آخر المستجدات</h2>
+ 
+
+<!-- NEWS -->
+<section class="container my-5" id="news">
+    <h2 class="section-title text-center">📰 آخر المستجدات</h2>
+
     <div class="row g-4">
-        <div class="col-md-4">
-            <div class="card-modern">
-                <i class="fa-solid fa-bullhorn"></i>
-                <h5>إطلاق منصة تسيير المنخرطين</h5>
-                <p class="text-muted">تمكين المنخرطين من متابعة وضعيتهم عن بعد.</p>
-            </div>
-        </div>
+        @forelse($news->where('is_active', 1) as $item)
+            <div class="col-12 col-sm-6 col-lg-4">
+                <div class="card-2026 text-center">
 
-        <div class="col-md-4">
-            <div class="card-modern">
-                <i class="fa-solid fa-dumbbell"></i>
-                <h5>دعم المدارس الرياضية</h5>
-                <p class="text-muted">متابعة ملفات الجمعيات والنوادي بصفة رقمية.</p>
-            </div>
-        </div>
+                    <div class="card-img-circle">
+                        <img src="{{ $item->image
+                            ? $storageUrl.'/'.ltrim($item->image,'/')
+                            : asset('images/placeholder.png') }}">
+                    </div>
 
-        <div class="col-md-4">
-            <div class="card-modern">
-                <i class="fa-solid fa-calendar-days"></i>
-                <h5>تقويم الأنشطة</h5>
-                <p class="text-muted">برمجة الفعاليات الرياضية على مدار السنة.</p>
+                    <h6 class="fw-bold">{{ $item->title }}</h6>
+
+                    <p class="text-muted small">
+                        {{ \Illuminate\Support\Str::limit($item->content,90) }}
+                    </p>
+
+                    <a href="{{ route('news.show',$item->id) }}"
+                       class="btn btn-outline-primary btn-2026 mt-2">
+                       اقرأ المزيد
+                    </a>
+                </div>
             </div>
-        </div>
+        @empty
+            <p class="text-center text-muted">لا توجد مستجدات</p>
+        @endforelse
     </div>
+</section>
+<section class="container my-5" id="events">
+    <h2 class="section-title text-center">📅 الفعاليات القادمة</h2>
 
-    <!-- EVENTS -->
-    <h2 class="section-title" id="events">الفعاليات القادمة</h2>
     <div class="row g-4">
-        <div class="col-md-6">
-            <div class="card-modern text-start">
-                <h5><i class="fa-solid fa-person-running me-2"></i>ماراطون ولاية ميلة</h5>
-                <p class="text-muted">جوان 2025 – مدينة ميلة</p>
-                <p class="text-muted">فعالية مفتوحة للرياضيين والمنخرطين.</p>
-            </div>
-        </div>
+        @forelse($events->where('is_active', 1) as $item)
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="card-2026">
 
-        <div class="col-md-6">
-            <div class="card-modern text-start">
-                <h5><i class="fa-solid fa-chalkboard-users me-2"></i>اليوم الدراسي للنوادي</h5>
-                <p class="text-muted">سبتمبر 2025 – معهد حيحي ميلة</p>
-                <p class="text-muted">تبادل الخبرات والبرمجة الرياضية.</p>
+                    <div class="card-img-circle">
+                        <img src="{{ $item->image
+                            ? $storageUrl.'/'.ltrim($item->image,'/')
+                            : asset('images/placeholder.png') }}">
+                    </div>
+
+                    <h6 class="fw-bold">
+                        <i class="fa-solid fa-calendar-days me-2"></i>
+                        {{ $item->title }}
+                    </h6>
+
+                    <span class="badge bg-success mb-2">
+                       من {{ \Carbon\Carbon::parse($item->start_date)->format('d/m/Y') }}
+                    </span>
+                     <span class="badge bg-success mb-2">
+                        إلى {{ \Carbon\Carbon::parse($item->end_date)->format('d/m/Y') }}
+                    </span>
+                    <p class="text-muted small">
+                        {{ \Illuminate\Support\Str::limit($item->description,120) }}
+                    </p>
+
+                    <a href="{{ route('events.show',$item->id) }}"
+                       class="btn btn-outline-success btn-2026 align-self-start">
+                       تفاصيل الحدث
+                    </a>
+                </div>
             </div>
-        </div>
+        @empty
+            <p class="text-center text-muted">لا توجد فعاليات</p>
+        @endforelse
     </div>
-
-    <!-- CONTACT -->
-    <h2 class="section-title" id="contact">معلومات الاتصال</h2>
-    <div class="row g-4">
-        <div class="col-md-6">
-            <div class="card-modern text-start">
-                <p>
-                    <i class="fa-solid fa-location-dot me-2 text-danger"></i>
-                    ديوان المركب المتعدد الرياضات – ولاية ميلة
-                </p>
-                <p><i class="fa-solid fa-phone me-2 text-success"></i>031-00-00-00</p>
-                <p><i class="fa-solid fa-envelope me-2 text-primary"></i>contact@opow-mila.dz</p>
-                <p><i class="fa-solid fa-building-columns me-2 text-warning"></i>OPOW MILA</p>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card-modern">
-                <h5 class="mb-3">نموذج اتصال (تجريبي)</h5>
-                <form>
-                    <input type="text" class="form-control mb-2" placeholder="الاسم الكامل">
-                    <input type="email" class="form-control mb-2" placeholder="البريد الإلكتروني">
-                    <textarea class="form-control mb-2" rows="3" placeholder="الرسالة"></textarea>
-                    <button type="button" class="btn btn-success w-100" disabled>إرسال</button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-</div>
-
-</div>
-
-
-    <!-- NEWS -->
+</section>
    
 
 <!-- FOOTER -->
-<footer class="footer">
+<footer class="footer-2026">
     <div class="container">
+        <div class="row g-4 align-items-start">
 
-        <!-- Social -->
-        <div>
-            <h6>تابعنا</h6>
-            <div class="social">
-                <a href="#"><i class="fa-brands fa-facebook-f"></i></a>
-                <a href="#"><i class="fa-brands fa-twitter"></i></a>
-                <a href="#"><i class="fa-brands fa-instagram"></i></a>
+            <!-- RIGHT: Institution Info -->
+            <div class="col-12 col-md-4 text-md-end text-center">
+                <h5 class="footer-title">ديوان المركب المتعدد الرياضات</h5>
+                <p class="footer-text">
+                    Office du parc omnisports<br>
+                    de la wilaya de Mila
+                </p>
+                <p class="footer-text fw-bold">OPOW Mila</p>
             </div>
+
+            <!-- CENTER: Contact & Social -->
+            <div class="col-12 col-md-4 text-center">
+                <h5 class="footer-title">تواصل معنا</h5>
+
+                <p class="footer-text">
+                    <i class="fa-solid fa-location-dot"></i>
+                   ديوان المركب المتعدد الرياضات لولاية ميلة
+                </p>
+
+                <p class="footer-text">
+                    <i class="fa-solid fa-envelope"></i>
+                    contact@opowmila.dz
+                </p>
+
+                <div class="footer-social mt-3">
+                    <a href="#" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+                    <a href="#" aria-label="Twitter"><i class="fa-brands fa-x-twitter"></i></a>
+                    <a href="#" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+
+            <!-- LEFT: Useful Links -->
+            <div class="col-12 col-md-4 text-md-start text-center">
+                <h5 class="footer-title">روابط مهمة</h5>
+                <ul class="footer-links">
+                    <li><a href="#">الموقع الرسمي للوزارة</a></li>
+                    <li><a href="#">منصة مشاركة</a></li>
+                    <li><a href="#">بوابة الفضاءات الشبانية</a></li>
+                </ul>
+            </div>
+
         </div>
 
-        <!-- Contact -->
-        <div>
-            <h6>تواصل معنا</h6>
-            <p><i class="fa-solid fa-location-dot"></i> الجزائر – وزارة الشباب</p>
-            <p><i class="fa-solid fa-envelope"></i> contact@mjeunesse.gov.dz</p>
+        <!-- Bottom -->
+        <div class="footer-bottom text-center mt-4">
+ © 2025 – جميع الحقوق محفوظة | ديوان المركب المتعدد الرياضات لولاية ميلة
         </div>
-
-        <!-- Links -->
-        <div>
-            <h6>روابط مهمة</h6>
-            <p><a href="#">الموقع الرسمي للوزارة</a></p>
-            <p><a href="#">منصة مشاركة</a></p>
-            <p><a href="#">بوابة الفضاءات الشبانية</a></p>
-        </div>
-
-        <!-- Logo -->
-        <div>
-            <img src="images/logo.png" alt="Logo" style="max-width:110px">
-            <p class="mt-3">
-                وزارة الشباب تعمل على تمكين الشباب وتعزيز مشاركتهم الفاعلة.
-            </p>
-        </div>
-
-    </div>
-
-    <div class="footer-bottom">
-        © 2025 – جميع الحقوق محفوظة | وزارة الشباب الجزائرية
     </div>
 </footer>
+<style>
+ 
+.footer-2026{
+    background: linear-gradient(135deg, #0a3d62, #0b5d57);
+    color:#fff;
+    padding:50px 0 25px;
+    font-family: "Cairo", sans-serif;
+}
 
+.footer-title{
+    font-weight:800;
+    margin-bottom:15px;
+}
+
+.footer-text{
+    font-size:0.9rem;
+    opacity:.9;
+    margin-bottom:6px;
+}
+
+.footer-links{
+    list-style:none;
+    padding:0;
+    margin:0;
+}
+.footer-links li{
+    margin-bottom:8px;
+}
+.footer-links a{
+    color:#fff;
+    text-decoration:none;
+    font-size:0.9rem;
+    opacity:.9;
+    transition:.3s;
+}
+.footer-links a:hover{
+    opacity:1;
+    text-decoration:underline;
+}
+
+.footer-social a{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:38px;
+    height:38px;
+    border-radius:50%;
+    background:rgba(255,255,255,.15);
+    color:#fff;
+    margin:0 6px;
+    font-size:1rem;
+    transition:.3s;
+}
+.footer-social a:hover{
+    background:#fff;
+    color:#0b5d57;
+}
+
+.footer-bottom{
+    border-top:1px solid rgba(255,255,255,.2);
+    padding-top:15px;
+    font-size:0.85rem;
+    opacity:.85;
+}
+
+/* Mobile adjustments */
+@media(max-width:576px){
+    .footer-title{
+        font-size:1.1rem;
+    }
+}
+</style>
 
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

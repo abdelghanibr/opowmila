@@ -2,294 +2,349 @@
 
 @section('content')
 
-<div class="container py-4" style="direction: rtl; text-align:right;">
+<div class="container py-4" style="direction: rtl; text-align:right; max-width:1200px">
 
     {{-- 🟦 Header --}}
     <div class="p-3 mb-4"
          style="background: linear-gradient(to right, #0a4f88, #0a8a67);
-                border-radius: 10px;
+                border-radius: 14px;
                 color: #fff;
-                font-weight:600;">
+                font-weight:700;">
         <div class="d-flex justify-content-between align-items-center">
             <span>📋 حجوزاتي</span>
-
             <a href="{{ route('activities.index') }}" class="btn btn-light fw-bold">
                 ➕ حجز جديد
             </a>
         </div>
     </div>
 
-    {{-- 🔍 فلاتر --}}
-    <div class="card p-3 shadow-sm mb-3">
-        <div class="row g-3">
+    {{-- ========================= --}}
+    {{-- 🖥️ Desktop (DataTable) --}}
+    {{-- ========================= --}}
+    <div class="d-none d-lg-block">
+        <div class="card shadow-sm p-3">
 
-            <div class="col-md-3">
-                <label>النشاط</label>
-                <select id="filterActivity" class="form-control">
-                    <option value="">الكل</option>
-                    @foreach($activities as $a)
-                        <option value="{{ $a->title }}">{{ $a->title }}</option>
-                    @endforeach
-                </select>
-            </div>
+            <table id="reservationsTable"
+                   class="table table-bordered table-striped align-middle text-center">
+                <thead class="table-dark">
+                    <tr>
+                        <th>#</th>
+                        <th>النشاط</th>
+                        <th>الموسم</th>
+                        <th>من</th>
+                        <th>إلى</th>
+                        <th>الساعات</th>
+                        <th>الأيام / الساعات</th>
+                        <th>السعر</th>
+                        <th>الحالة</th>
+                        <th>الدفع</th>
+                        <th>التحكم</th>
+                    </tr>
+                </thead>
 
-            <div class="col-md-3">
-                <label>الموسم</label>
-                <select id="filterSeason" class="form-control">
-                    <option value="">الكل</option>
-                    @foreach($seasons as $s)
-                        <option value="{{ $s->name }}">{{ $s->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-
-            <div class="col-md-2">
-                <label>الحالة</label>
-                <select id="filterStatus" class="form-control">
-                    <option value="">الكل</option>
-                    <option value="pending">قيد الانتظار</option>
-                    <option value="confirmed">مؤكد</option>
-                    <option value="rejected">مرفوض</option>
-                </select>
-            </div>
-
-            <div class="col-md-2">
-                <label>الدفع</label>
-                <select id="filterPayment" class="form-control">
-                    <option value="">الكل</option>
-                    <option value="paid">مدفوع</option>
-                    <option value="unpaid">غير مدفوع</option>
-                </select>
-            </div>
-
-        </div>
-    </div>
-
-    {{-- 📊 Table --}}
-    <div class="card p-3 shadow-sm">
-
-        <table id="reservationsTable"
-               class="table table-bordered table-striped text-center align-middle">
-            <thead class="table-dark">
-                <tr>
-                    <th>#</th>
-                    <th>النشاط</th>
-                    <th>الموسم</th>
-                    <th>من</th>
-                    <th>إلى</th>
-                    <th>الساعات</th>
-                    <th>الأيام / الساعات</th>
-                    <th>السعر</th>
-                    <th>الحالة</th>
-                    <th>الدفع</th>
-                    <th>التحكم</th>
-                </tr>
-            </thead>
-
-            <tbody>
+                <tbody>
                 @foreach($reservations as $r)
-                <tr>
-                    <td>{{ $r->id }}</td>
+                    <tr>
+                        <td>{{ $r->id }}</td>
+                        <td>{{ optional(optional($r->complexActivity)->activity)->title ?? '—' }}</td>
+                        <td>{{ optional($r->season)->name ?? '—' }}</td>
+                        <td>{{ $r->start_date?->format('Y-m-d') }}</td>
+                        <td>{{ $r->end_date?->format('Y-m-d') }}</td>
+                        <td>{{ $r->duration_hours ?? '—' }}</td>
 
-                    <td>{{ optional(optional($r->complexActivity)->activity)->title ?? '—' }}</td>
-
-                    <td>{{ optional($r->season)->name ?? '—' }}</td>
-
-                    <td>{{ $r->start_date?->format('Y-m-d') }}</td>
-                    <td>{{ $r->end_date?->format('Y-m-d') }}</td>
-
-                    <td>{{ $r->duration_hours ?? '—' }}</td>
-
-
-<td>
-    @php
-        $slots = $r->time_slots;
-        if (isset($slots['day_number'])) {
-            $slots = [$slots]; // تحويل object → array
-        }
-    @endphp
-
-    @foreach($slots ?? [] as $slot)
-        <div class="bg-light border rounded px-2 py-1 mb-1">
-            {{ $r->getDayName($slot['day_number']) }} :
-            {{ $slot['start'] }} → {{ $slot['end'] }}
-        </div>
-    @endforeach
-</td>
-
-
-
-                    <td>{{ number_format($r->total_price ?? 0) }} دج</td>
-
-                    {{-- الحالة --}}
-                    <td>
-                        <span class="badge
-                            {{ $r->status == 'confirmed' ? 'bg-success' :
-                               ($r->status == 'pending' ? 'bg-warning' : 'bg-danger') }}">
-                            {{ $r->status }}
-                        </span>
-                    </td>
-
-                    {{-- الدفع --}}
-                    
-<td class="text-center">
-    <span class="badge {{ $r->etat_label['class'] }}">
-        {{ $r->etat_label['label'] }}
-    </span>
-</td>
-
-
-
-                    </td>
-
-                    {{-- التحكم --}}
-                    
-                    <td class="text-center">
-
-    @if($r->payment_status === 'paid')
-        {{-- 🔁 تجديد --}}
-        <button class="btn btn-sm btn-primary"
-                data-bs-toggle="modal"
-                data-bs-target="#renewModal{{ $r->id }}">
-            🔁 تجديد
-        </button>
-
-    @elseif($r->payment_status === 'pending' || $r->payment_status === 'failed')
-        {{-- 💳 دفع --}}
-      <a href="{{ route('payments.pay', $r->id) }}"
-   class="btn btn-sm btn-success">
-    💳 دفع
-</a>
-
-    @endif
-
-
-   
-                    <form action="{{ route('reservations.destroy', $r->id) }}"
-          method="POST"
-          onsubmit="return confirm('هل أنت متأكد من حذف هذا الحجز؟');">
-        @csrf
-        @method('DELETE')
-        <button class="btn btn-sm btn-danger">
-            🗑️
-        </button>
-        
-    </form>
-                                     <button class="btn btn-sm btn-outline-dark"
-        onclick="printReservation({{ $r->id }})">
-    🖨️ طباعة
-</button>
-                    </td>
-                </tr>
-
-                {{-- 🔁 Modal التجديد --}}
-                <div class="modal fade" id="renewModal{{ $r->id }}" tabindex="-1">
-                    <div class="modal-dialog modal-lg modal-dialog-centered">
-                        <form action="{{ route('reservations.renew.store', $r->id) }}" method="POST">
-                            @csrf
-
-                            <div class="modal-content" style="direction: rtl">
-                                <div class="modal-header bg-primary text-white">
-                                    <h5 class="modal-title">🔁 تجديد الحجز</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        {{-- Slots --}}
+                        <td>
+                            @php
+                                $slots = $r->time_slots;
+                                if (isset($slots['day_number'])) $slots = [$slots];
+                            @endphp
+                            @foreach($slots ?? [] as $slot)
+                                <div class="bg-light rounded px-2 py-1 mb-1">
+                                    {{ $r->getDayName($slot['day_number']) }}
+                                    {{ $slot['start'] }} → {{ $slot['end'] }}
                                 </div>
+                            @endforeach
+                        </td>
 
-                                <div class="modal-body">
+                        <td>{{ number_format($r->total_price ?? 0) }} دج</td>
 
-                                    <div class="alert alert-info">
-                                        <strong>النشاط:</strong>
-                                        {{ optional(optional($r->complexActivity)->activity)->title }}
-                                        <br>
-                                        <strong>السعر السابق:</strong>
-                                        {{ number_format($r->total_price) }} دج
+                        {{-- status --}}
+                        <td>
+                            <span class="badge
+                                {{ $r->status === 'confirmed' ? 'bg-success' :
+                                   ($r->status === 'pending' ? 'bg-warning' : 'bg-danger') }}">
+                                {{ $r->status }}
+                            </span>
+                        </td>
+
+                        {{-- payment --}}
+                        <td>
+                            <span class="badge {{ $r->etat_label['class'] }}">
+                                {{ $r->etat_label['label'] }}
+                            </span>
+                        </td>
+
+                        {{-- actions --}}
+                        <td class="d-flex gap-1 justify-content-center flex-wrap">
+
+                            {{-- 🔁 Renew --}}
+                            @if($r->payment_status === 'paid')
+                                <button class="btn btn-sm btn-primary"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#renewModal{{ $r->id }}">
+                                   🔁 تجديد
+                                </button>
+                            @else
+                                <a href="{{ route('payments.pay', $r->id) }}"
+                                   class="btn btn-sm btn-success">
+                                    💳 الدفع
+                                </a>
+                            @endif
+
+                            {{-- 🖨️ Print --}}
+                            @if($r->payment_status === 'paid')
+                                <button class="btn btn-sm btn-outline-dark"
+                                        onclick="printReservation({{ $r->id }})">
+                                    طباعة وصل التسديد🖨️
+                                </button>
+                            @else
+                                <button class="btn btn-sm btn-outline-secondary"
+                                        onclick="alert('⚠️ يجب إتمام الدفع قبل الطباعة');">
+                                    🖨️
+                                </button>
+                            @endif
+
+                            {{-- 🗑️ Delete --}}
+                            <form action="{{ route('reservations.destroy', $r->id) }}"
+                                  method="POST"
+                                  onsubmit="return confirm('حذف الحجز؟');">
+                                @csrf
+                                @method('DELETE')
+                                <button class="btn btn-sm btn-danger">🗑️</button>
+                            </form>
+                        </td>
+                    </tr>
+
+                    {{-- 🔁 Modal Renew --}}
+                    <div class="modal fade" id="renewModal{{ $r->id }}" tabindex="-1">
+                        <div class="modal-dialog modal-lg modal-dialog-centered">
+                            <form action="{{ route('reservations.renew.store', $r->id) }}" method="POST">
+                                @csrf
+                                <div class="modal-content" style="direction: rtl">
+                                    <div class="modal-header bg-primary text-white">
+                                        <h5 class="modal-title">🔁 تجديد الحجز</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                     </div>
 
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <label>📅 من</label>
-                                            <input type="date" name="start_date"
-                                                   class="form-control"
-                                                   min="{{ now()->toDateString() }}"
-                                                   required>
+                                    <div class="modal-body">
+                                        <div class="alert alert-info">
+                                            <strong>النشاط:</strong>
+                                            {{ optional(optional($r->complexActivity)->activity)->title ?? '—' }}
+                                            <br>
+                                            <strong>السعر:</strong>
+                                            {{ number_format($r->total_price ?? 0) }} دج
                                         </div>
-
-                                        <div class="col-md-6">
-                                            <label>📅 إلى</label>
-                                            <input type="date" name="end_date"
-                                                   class="form-control" required>
-                                        </div>
-                                    </div>
-
-                                    <hr>
-
-                                    <div class="form-check">
-                                        <input class="form-check-input"
-                                               type="checkbox"
-                                               name="pay_now"
-                                               value="1"
-                                               id="payNow{{ $r->id }}">
-                                        <label class="form-check-label" for="payNow{{ $r->id }}">
-                                            💳 الدفع الآن
-                                        </label>
-                                    </div>
-
-                                </div>
-
-
-                                <div class="modal-footer">
-                                    <button class="btn btn-secondary" data-bs-dismiss="modal">
-                                        إلغاء
-                                    </button>
-                                    <button class="btn btn-success">
-                                        ✅ تأكيد التجديد
-                                    </button>
-   
-
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-                @endforeach
-            </tbody>
-        </table>
-
+@if ($errors->any())
+    <div class="alert alert-danger">
+        <ul class="mb-0">
+            @foreach ($errors->all() as $error)
+                <li>⚠️ {{ $error }}</li>
+            @endforeach
+        </ul>
     </div>
+@endif
+
+
+<div class="row g-3">
+
+    {{-- الموسم --}}
+    <div class="col-md-12">
+        <label class="fw-bold">🏷️ اختر الموسم</label>
+        <select name="season_id"
+                id="seasonSelect{{ $r->id }}"
+                class="form-control"
+                required
+                onchange="fillSeasonDates{{ $r->id }}(this)">
+            <option value="">— اختر الموسم —</option>
+            @foreach($seasons as $season)
+                <option value="{{ $season->id }}"
+                        data-start="{{ $season->date_debut }}"
+                        data-end="{{ $season->date_fin }}">
+                    {{ $season->name }}
+                    ({{ $season->date_debut }} → {{ $season->date_fin }})
+                </option>
+            @endforeach
+        </select>
+        @error('season_id')
+            <div class="invalid-feedback d-block">{{ $message }}</div>
+        @enderror
+    </div>
+
+
 </div>
 
+
+
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label>📅 من</label>
+                                                <input type="date" name="start_date" id="startDate{{ $r->id }}"
+                                                       class="form-control"
+                                                       value="{{ now()->toDateString() }}"
+                                                       min="{{ now()->toDateString() }}" required>
+                                            </div>
+                                            @error('start_date')
+    <div class="invalid-feedback d-block">
+        {{ $message }}
+    </div>
+@enderror
+
+                                            <div class="col-md-6">
+                                                <label>📅 إلى</label>
+                                                <input type="date" name="end_date" id="endDate{{ $r->id }}"
+                                                       class="form-control" required>
+                                            </div>
+                                            @error('end_date')
+    <div class="invalid-feedback d-block">
+        {{ $message }}
+    </div>
+@enderror
+
+
+                                        </div>
+
+                                        <hr>
+
+                                        <div class="form-check">
+                                            <input class="form-check-input"
+                                                   type="checkbox"
+                                                   name="pay_now"
+                                                   value="1"
+                                                   id="payNow{{ $r->id }}">
+                                            <label class="form-check-label" for="payNow{{ $r->id }}">
+                                                💳 الدفع مباشرة بعد التجديد
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="modal-footer">
+                                        <button class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                      <button type="submit"
+        id="renewSubmitBtn"
+        class="btn btn-success">
+    ✅ تأكيد التجديد
+</button>
+
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {{-- ========================= --}}
+    {{-- 📱 Mobile / Tablet (Cards) --}}
+    {{-- ========================= --}}
+    <div class="d-block d-lg-none">
+        @foreach($reservations as $r)
+        <div class="card mobile-reservation-card mb-3">
+            <div class="card-body">
+
+                <div class="d-flex justify-content-between fw-bold">
+                    <span>{{ optional(optional($r->complexActivity)->activity)->title ?? '—' }}</span>
+                    <span class="badge {{ $r->etat_label['class'] }}">
+                        {{ $r->etat_label['label'] }}
+                    </span>
+                </div>
+
+                <div class="text-muted small my-1">
+                    📅 {{ $r->start_date?->format('Y-m-d') }}
+                    → {{ $r->end_date?->format('Y-m-d') }}
+                </div>
+
+                <div class="fw-bold my-2">
+                    💰 {{ number_format($r->total_price ?? 0) }} دج
+                </div>
+
+                <div class="d-grid gap-2">
+                    @if($r->payment_status === 'paid')
+                        <button class="btn btn-primary"
+                                data-bs-toggle="modal"
+                                data-bs-target="#renewModal{{ $r->id }}">
+                            🔁 تجديد
+                        </button>
+
+                        <button class="btn btn-outline-dark"
+                                onclick="printReservation({{ $r->id }})">
+                            🖨️ طباعة
+                        </button>
+                    @else
+                        <a href="{{ route('payments.pay', $r->id) }}"
+                           class="btn btn-success">
+                            💳 دفع
+                        </a>
+
+                        <button class="btn btn-outline-secondary"
+                                onclick="alert('⚠️ يجب إتمام الدفع قبل الطباعة');">
+                            🖨️ طباعة
+                        </button>
+                    @endif
+
+                    <form action="{{ route('reservations.destroy', $r->id) }}"
+                          method="POST"
+                          onsubmit="return confirm('حذف الحجز؟');">
+                        @csrf
+                        @method('DELETE')
+                        <button class="btn btn-danger">🗑️ حذف</button>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+        @endforeach
+    </div>
+
+</div>
 @endsection
 
-@push('js')
+{{-- ============================= --}}
+{{-- CSS --}}
+{{-- ============================= --}}
+@push('css')
+<style>
+.mobile-reservation-card{
+    border-radius:18px;
+    box-shadow:0 10px 24px rgba(0,0,0,.08);
+    border:1px solid #eef2f7;
+}
+</style>
+@endpush
 
+{{-- ============================= --}}
+{{-- JS --}}
+{{-- ============================= --}}
+@push('js')
 @include('admin.partials.datatable-script', ['tableId' => '#reservationsTable'])
 
 <script>
-$(document).ready(function() {
 
-    let table = $('#reservationsTable').DataTable();
+  
+function fillSeasonDates{{ $r->id }}(select) {
+    let option = select.options[select.selectedIndex];
 
-    $('#filterActivity, #filterSeason, #filterStatus, #filterPayment')
-        .on('change', function () {
-            table.draw();
-        });
+    document.getElementById('startDate{{ $r->id }}').value =
+        option.getAttribute('data-start');
 
-    $.fn.dataTable.ext.search.push(
-        function(settings, data) {
+    document.getElementById('endDate{{ $r->id }}').value =
+        option.getAttribute('data-end');
+}
 
-            let activity = $('#filterActivity').val();
-            let season   = $('#filterSeason').val();
-            let status   = $('#filterStatus').val();
-            let payment  = $('#filterPayment').val();
 
-            if (activity && data[1] !== activity) return false;
-            if (season && data[2] !== season) return false;
-            if (status && data[7] !== status) return false;
-            if (payment && data[8] !== payment) return false;
-
-            return true;
-        }
-    );
-});
 function printReservation(id) {
     window.open(
         "{{ url('/reservations') }}/" + id + "/print",
@@ -297,6 +352,27 @@ function printReservation(id) {
         "width=900,height=1200"
     );
 }
-</script>
 
+
+document.addEventListener('DOMContentLoaded', function () {
+
+    const hasErrors = document.querySelector('.alert-danger');
+
+    if (hasErrors) {
+        const btn = document.getElementById('renewSubmitBtn');
+        if (btn) {
+            btn.disabled = true;
+            btn.classList.add('disabled');
+        }
+    }
+
+});
+
+
+flatpickr(".date", {
+    dateFormat: "d/m/Y",
+    allowInput: true
+});
+
+</script>
 @endpush

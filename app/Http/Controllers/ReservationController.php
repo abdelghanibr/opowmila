@@ -16,10 +16,11 @@ use App\Models\Club;
 
 use App\Models\ComplexActivity;
 use App\Models\Schedule;
-
+  use Illuminate\Support\Facades\Log;
 use App\Models\PricingPlan;
 
 class ReservationController extends Controller
+
 {
     private const DAY_LABELS = [
         'الأحد',
@@ -242,7 +243,8 @@ public function availability($complexActivityId)
         });
     }
 
-    $seasons   = Season::all();
+    $seasons = Season::where('date_fin', '>=', now()->toDateString())->get();
+
     $dossier = Club::where('user_id', $user->id)->first();
     // تحقق من الدوسيي
     if ($user->type === 'company' || $user->type === 'club') {
@@ -286,41 +288,87 @@ public function availability($complexActivityId)
     ));
 
 }
+private function normalizeDate($date)
+{
+    if (!$date) return null;
+
+    try {
+        return Carbon::parse($date)->format('Y-m-d');
+    } catch (\Exception $e) {
+        return null;
+    }
+}
 
 public function renewStore(Request $request, Reservation $reservation)
-{
-    $request->validate([
+{  $request->merge([
+        'start_date' => $this->normalizeDate($request->start_date),
+        'end_date'   => $this->normalizeDate($request->end_date),
+    ]);
+   // dd($request->all());
+    $request->validate(
+    [
         'start_date' => 'required|date|after_or_equal:today',
         'end_date'   => 'required|date|after:start_date',
-    ]);
+    ],
+    [
+        'start_date.required' => '⚠️ تاريخ البداية إجباري',
+        'start_date.date' => '⚠️ تاريخ البداية غير صالح',
+        'start_date.after_or_equal' => '⚠️ تاريخ البداية يجب أن يكون اليوم أو بعده',
 
-    // حساب عدد الأيام
+        'end_date.required' => '⚠️ تاريخ النهاية إجباري',
+        'end_date.date' => '⚠️ تاريخ النهاية غير صالح',
+        'end_date.after' => '⚠️ تاريخ النهاية يجب أن يكون بعد تاريخ البداية',
+    ]
+);
+//dd($request->all());
+    // 🧮 حساب السعر
     $days = \Carbon\Carbon::parse($request->start_date)
-        ->diffInDays(\Carbon\Carbon::parse($request->end_date)) + 1;// إضافة يوم للبداية
+        ->diffInDays(\Carbon\Carbon::parse($request->end_date)) + 1;
 
-    // حساب السعر (مثال بسيط)
-    $pricePerDay = $reservation->total_price /
-                   max(1, $reservation->duration_hours);// تجنب القسمة على صفر
+    $pricePerDay = $reservation->pricingPlan->price ?? 0;
+    $newPrice = $days * $pricePerDay;
 
-    $newPrice = $days*$pricePerDay;
-
-    // إنشاء حجز جديد (clone)
+    // 🔁 نسخ الحجز
     $newReservation = $reservation->replicate([
-        'status',
+        'statut',
         'payment_status'
     ]);
 
-    $newReservation->start_date = $request->start_date;
-    $newReservation->end_date   = $request->end_date;
-    $newReservation->total_price = round($newPrice);
-    $newReservation->status = 'pending';
-    $newReservation->payment_status =
-        $request->pay_now ? 'paid' : 'unpaid';
+    $newReservation->start_date     = $request->start_date;
+    $newReservation->end_date       = $request->end_date;
+    $newReservation->total_price    = round($newPrice);
+    $newReservation->statut         = 'en_attente';
+    $newReservation->payment_status = $request->pay_now ? 'pending' : 'pending';
+
+  
+
+try {
 
     $newReservation->save();
 
+} catch (\Exception $e) {
+
+    // (اختياري) تسجيل الخطأ في log
+    Log::error('Reservation save failed', [
+        'error' => $e->getMessage()
+    ]);
+
+    return back()
+        ->withInput()
+        ->with('error', '⚠️ حدث خطأ أثناء حفظ التواريخ، يرجى التحقق منها والمحاولة مرة أخرى.');
+}
+
+//dd($newReservation);
+    // ✅ إذا اختار "الدفع الآن"
+    if ($request->pay_now) {
+        return redirect()
+            ->route('payments.pay', $newReservation->id)
+            ->with('info', '💳 يرجى إتمام الدفع لتأكيد التجديد');
+    }
+
+    // ✅ إذا لم يختر الدفع
     return redirect()
-        ->route('reservations.index')
+        ->route('reservation.my-reservations')
         ->with('success', '✅ تم تجديد الحجز بنجاح');
 }
 

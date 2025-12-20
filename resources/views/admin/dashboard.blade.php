@@ -201,6 +201,30 @@
 </div>
 
 
+<div class="col-md-3">
+    <a href="{{ route('news.index') }}" class="text-decoration-none text-dark">
+        <div class="dash-card">
+            <div class="dash-icon">📰</div>
+            <h6 class="fw-bold">الأخبار</h6>
+            <div class="count-box">
+                {{ \App\Models\News::count() }}
+            </div>
+        </div>
+    </a>
+</div>
+
+
+<div class="col-md-3">
+    <a href="{{ route('events.index') }}" class="text-decoration-none text-dark">
+        <div class="dash-card">
+            <div class="dash-icon">🎉</div>
+            <h6 class="fw-bold">الأحداث</h6>
+            <div class="count-box">
+                {{ \App\Models\Event::count() }}
+            </div>
+        </div>
+    </a>
+</div>
 
 
 

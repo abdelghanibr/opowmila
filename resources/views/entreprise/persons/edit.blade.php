@@ -1,54 +1,183 @@
 @extends('layouts.app')
 
 @section('content')
+<div class="container py-5" style="direction: rtl; text-align:right; max-width: 900px;">
 
-<div class="container py-4" style="direction: rtl; text-align:right">
+    {{-- 🟦 Card --}}
+    <div class="card shadow-lg border-0 rounded-4">
 
-    <h3 class="mb-4 text-primary">✏ تعديل بيانات المستخدم</h3>
-
-    <form action="{{ route('entreprise.persons.update', $person->id) }}" method="POST">
-        @csrf
-
-        <div class="mb-3">
-            <label class="form-label">الاسم:</label>
-            <input type="text" name="firstname" value="{{ $person->firstname }}" class="form-control" required>
+        {{-- Header --}}
+        <div class="card-header bg-primary text-white rounded-top-4 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">✏️ تعديل بيانات المستخدم</h5>
+            <span class="fs-5">👤</span>
         </div>
 
-        <div class="mb-3">
-            <label class="form-label">اللقب:</label>
-            <input type="text" name="lastname" value="{{ $person->lastname }}" class="form-control" required>
+        <div class="card-body p-4">
+
+            {{-- أخطاء التحقق --}}
+            @if ($errors->any())
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        @foreach ($errors->all() as $error)
+                            <li>⚠ {{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            {{-- Form --}}
+            <form action="{{ route('entreprise.persons.update', $person->id) }}"
+                  method="POST"
+                  enctype="multipart/form-data">
+                @csrf
+
+                <div class="row g-4">
+
+                    {{-- الاسم --}}
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">الاسم</label>
+                        <input type="text" name="firstname"
+                               class="form-control form-control-lg rounded-3"
+                               value="{{ old('firstname', $person->firstname) }}"
+                               required>
+                    </div>
+
+                    {{-- اللقب --}}
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">اللقب</label>
+                        <input type="text" name="lastname"
+                               class="form-control form-control-lg rounded-3"
+                               value="{{ old('lastname', $person->lastname) }}"
+                               required>
+                    </div>
+
+                    {{-- تاريخ الميلاد --}}
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">تاريخ الميلاد</label>
+                        <input type="date" name="birth_date"
+                               class="form-control form-control-lg rounded-3"
+                               value="{{ old('birth_date', $person->birth_date) }}"
+                               required>
+                    </div>
+
+                    {{-- الجنس --}}
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">الجنس</label>
+                        <select name="gender"
+                                class="form-select form-select-lg rounded-3" required>
+                            <option value="">— اختر —</option>
+                            <option value="ذكر" {{ old('gender', $person->gender)=='ذكر'?'selected':'' }}>ذكر</option>
+                            <option value="أنثى" {{ old('gender', $person->gender)=='أنثى'?'selected':'' }}>أنثى</option>
+                        </select>
+                    </div>
+
+                    {{-- التصنيف --}}
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">التصنيف</label>
+                        <select name="education"
+                                class="form-select form-select-lg rounded-3" required>
+                            <option value="">— اختر —</option>
+                            @foreach(['لاعب','مدرب','مسير','آخر'] as $role)
+                                <option value="{{ $role }}"
+                                    {{ old('education', $person->education)==$role?'selected':'' }}>
+                                    {{ $role }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    {{-- الصورة --}}
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">📷 الصورة الشمسية</label>
+
+                        <input type="file"
+                               name="photo"
+                               id="photoInput"
+                               class="form-control form-control-lg rounded-3"
+                               accept="image/jpeg,image/png">
+
+                        {{-- Preview --}}
+                        <div class="text-center mt-3">
+                            <img id="photoPreview"
+                                 src="{{ $person->photo ? asset('storage/'.$person->photo) : asset('images/avatar-placeholder.png') }}"
+                                 class="rounded-circle shadow-sm"
+                                 style="width:120px;height:120px;object-fit:cover;">
+                        </div>
+
+                        {{-- شروط الصورة --}}
+                        <div class="photo-rules mt-3">
+                            <div class="rules-title">⭐ شروط الصورة</div>
+                            <ul class="rules-list">
+                                <li>خلفية بيضاء</li>
+                                <li>الصيغة JPG أو PNG</li>
+                                <li>الحجم أقل من 2MB</li>
+                                <li>صورة حديثة (≤ 6 أشهر)</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                </div>
+
+                {{-- زر الحفظ --}}
+                <div class="text-center mt-5">
+                    <button type="submit"
+                            class="btn btn-success btn-lg px-5 rounded-pill shadow">
+                        💾 حفظ التعديلات
+                    </button>
+                </div>
+
+            </form>
         </div>
-
-        <div class="mb-3">
-            <label class="form-label">تاريخ الميلاد:</label>
-            <input type="date" name="birth_date" value="{{ $person->birth_date }}" class="form-control" required>
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">الجنس:</label>
-            <select name="gender" class="form-control" required>
-                <option value="ذكر" {{ $person->gender == 'ذكر' ? 'selected' : '' }}>ذكر</option>
-                <option value="أنثى" {{ $person->gender == 'أنثى' ? 'selected' : '' }}>أنثى</option>
-            </select>
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">التصنيف:</label>
-            <select name="education" class="form-control" required>
-                @foreach(['لاعب','مدرب','مسير','آخر'] as $role)
-                <option value="{{ $role }}" {{ $person->education == $role ? 'selected':'' }}>
-                    {{ $role }}
-                </option>
-                @endforeach
-            </select>
-        </div>
-
-        <button class="btn btn-success">💾 حفظ التعديلات</button>
-        <a href="{{ route('entreprise.persons.index', $person->education) }}" class="btn btn-secondary">
-            ⬅ رجوع
-        </a>
-
-    </form>
+    </div>
 </div>
 
+{{-- ================= CSS ================= --}}
+<style>
+.photo-rules {
+    background: #eaf6ff;
+    border: 1px solid #b6e1ff;
+    border-radius: 14px;
+    padding: 14px 18px;
+    font-size: 14px;
+}
+
+.rules-title {
+    color: #0d6efd;
+    font-weight: 800;
+    margin-bottom: 8px;
+}
+
+.rules-list {
+    margin: 0;
+    padding-right: 18px;
+}
+
+.rules-list li {
+    color: #084298;
+    line-height: 1.9;
+}
+
+.card {
+    animation: fadeUp .5s ease-in-out;
+}
+
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
+
+{{-- ================= JS (Preview) ================= --}}
+<script>
+document.getElementById('photoInput').addEventListener('change', function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        document.getElementById('photoPreview').src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+});
+</script>
 @endsection
