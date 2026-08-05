@@ -42,7 +42,7 @@ class ComplexeController extends Controller
             'type' => 'nullable|string|max:255',
             'description' => 'nullable|string',
         ]);
-
+//dd($request) ;
         DB::table('complexes')->insert([
             'nom' => $request->nom,
             'capacite' => $request->capacite,

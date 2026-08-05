@@ -61,9 +61,9 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">تاريخ البداية</label>
-                            <input type="date"
+                            <input type="text"
                                    name="start_date"
-                                   class="form-control @error('start_date') is-invalid @enderror"
+                                   class="form-control js-date-fr @error('start_date') is-invalid @enderror"
                                    value="{{ old('start_date') }}"
                                    required>
                             @error('start_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
@@ -71,9 +71,9 @@
 
                         <div class="col-md-6">
                             <label class="form-label">تاريخ النهاية</label>
-                            <input type="date"
+                            <input type="text"
                                    name="end_date"
-                                   class="form-control @error('end_date') is-invalid @enderror"
+                                   class="form-control js-date-fr @error('end_date') is-invalid @enderror"
                                    value="{{ old('end_date') }}"
                                    required>
                             @error('end_date')<div class="invalid-feedback">{{ $message }}</div>@enderror

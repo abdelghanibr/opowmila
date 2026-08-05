@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use App\Models\Activity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
@@ -96,7 +96,7 @@ class NewsController extends Controller
         'title',
         'content',
         'published_at',
-        'is_active'
+        
     ]);
 
     // 📸 New image uploaded
@@ -119,7 +119,7 @@ class NewsController extends Controller
 
         $data['image'] = $storageUrl . '/news/' . $fileName;
     }
-
+    $data['is_active'] = $request->has('is_active') ? 1 : 0;
     $news->update($data);
 
     return redirect()
@@ -131,5 +131,34 @@ class NewsController extends Controller
         $news = News::findOrFail($id);
         return view('admin.news.show', compact('news'));
     }
+
+
+public function destroy(News $news)
+{
+    // 📦 Paths (local / production)
+    if (app()->environment('local')) {
+        $storagePath = storage_path('app/public');
+        $storageUrl  = '/storage';
+    } else {
+        $storagePath = rtrim(env('PUBLIC_STORAGE_PATH'), '/');
+        $storageUrl  = rtrim(env('PUBLIC_STORAGE_URL'), '/');
+    }
+
+    // 🗑️ حذف الصورة إن وجدت
+    if ($news->image) {
+        $imagePath = str_replace($storageUrl, $storagePath, $news->image);
+        if (file_exists($imagePath)) {
+            unlink($imagePath);
+        }
+    }
+
+    // 🗑️ حذف الخبر
+    $news->delete();
+
+    return redirect()
+        ->route('news.index')
+        ->with('success', '🗑️ تم حذف الخبر بنجاح');
+}
+
 
 }

@@ -36,6 +36,7 @@
                     <th>العمر</th>
                     <th>الجنس</th>
                     <th>التصنيف</th>
+                      <th>رقم الإجازة</th>
                     <th>إجراءات</th>
                 </tr>
             </thead>
@@ -64,7 +65,7 @@
                     <td>{{ \Carbon\Carbon::parse($p->birth_date)->age }} سنة</td>
                     <td>{{ $p->gender }}</td>
                     <td>{{ $p->education }}</td>
-
+  <td>{{ $p->license_number }}</td>
                     {{-- الإجراءات --}}
                     <td>
                         <a href="{{ route('club.persons.edit', $p->id) }}"

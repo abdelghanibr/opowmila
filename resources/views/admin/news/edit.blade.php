@@ -67,56 +67,66 @@
             </div>
 
             {{-- ================= RIGHT : IMAGE + ACTIVE ================= --}}
-            <div class="col-12 col-lg-4">
+  <div class="col-12 col-lg-4">
 
-                {{-- IMAGE CARD --}}
-                <div class="card-2026 text-center">
-                    <h6 class="card-title mb-3">🖼️ صورة الخبر</h6>
+    {{-- IMAGE CARD --}}
+    <div class="card-2026 text-center">
+        <h6 class="card-title mb-3">🖼️ صورة الخبر</h6>
 
-                    <div class="image-preview-circle mb-3">
-                        <img id="imagePreview"
-                             src="{{ $news->image
-                                    ? $storageUrl.'/'.ltrim($news->image,'/')
-                                    : asset('images/placeholder.png') }}"
-                             alt="preview">
-                    </div>
+        {{-- Image preview --}}
+        <div class="d-flex justify-content-center align-items-center mb-3 image-preview-circle">
+            @if($news->image)
+                <img id="imagePreview"
+                     src="{{ asset($news->image) }}"
+                     alt="News image"
+                     class="rounded-circle shadow-sm"
+                     style="width:120px;height:120px;object-fit:cover;">
+            @else
+                <img id="imagePreview"
+                     src="{{ asset('images/placeholder.png') }}"
+                     alt="No image"
+                     class="rounded-circle shadow-sm"
+                     style="width:120px;height:120px;object-fit:cover;">
+            @endif
+        </div>
 
-                    <input type="file"
-                           name="image"
-                           id="imageInput"
-                           class="form-control @error('image') is-invalid @enderror"
-                           accept="image/*">
+        <input type="file"
+               name="image"
+               id="imageInput"
+               class="form-control @error('image') is-invalid @enderror"
+               accept="image/*">
 
-                    @error('image')
-                        <div class="invalid-feedback d-block">{{ $message }}</div>
-                    @enderror
+        @error('image')
+            <div class="invalid-feedback d-block">{{ $message }}</div>
+        @enderror
 
-                    <small class="text-muted d-block mt-2">
-                        إذا لم تغيّر الصورة ستبقى الحالية
-                    </small>
-                </div>
+        <small class="text-muted d-block mt-2">
+            إذا لم تغيّر الصورة ستبقى الحالية
+        </small>
+    </div>
 
-                {{-- ACTIVE CARD --}}
-                <div class="card-2026 mt-4">
-                    <h6 class="card-title mb-3">⚙️ حالة النشر</h6>
+    {{-- ACTIVE CARD --}}
+    <div class="card-2026 mt-4">
+        <h6 class="card-title mb-3">⚙️ حالة النشر</h6>
 
-                    <div class="form-check form-switch">
-                        <input class="form-check-input"
-                               type="checkbox"
-                               id="is_active"
-                               name="is_active"
-                               value="1"
-                               {{ old('is_active', $news->is_active) ? 'checked' : '' }}>
-                        <label class="form-check-label fw-bold" for="is_active">
-                            نشر الخبر
-                        </label>
-                    </div>
+        <div class="form-check form-switch">
+            <input class="form-check-input"
+                   type="checkbox"
+                   id="is_active"
+                   name="is_active"
+                   value="1"
+                   {{ old('is_active', $news->is_active) ? 'checked' : '' }}>
+            <label class="form-check-label fw-bold" for="is_active">
+                نشر الخبر
+            </label>
+        </div>
 
-                    <small class="text-muted">
-                        عند التعطيل لن يظهر الخبر في الواجهة العامة
-                    </small>
-                </div>
-            </div>
+        <small class="text-muted">
+            عند التعطيل لن يظهر الخبر في الواجهة العامة
+        </small>
+    </div>
+</div>
+
 
         </div>
 

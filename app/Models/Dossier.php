@@ -20,7 +20,10 @@ class Dossier extends Model
         return $this->hasMany(Document::class);
     }
 
-
+public function attachments()
+{
+    return $this->hasMany(Attachment::class, 'dossier_id');
+}
 
 public function person()
 {
@@ -35,6 +38,10 @@ public function club()
 public function company()
 {
     return $this->belongsTo(Club::class, 'person_id');
+}
+public function validator()
+{
+    return $this->belongsTo(User::class, 'validated_by');
 }
 
 }

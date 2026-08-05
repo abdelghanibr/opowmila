@@ -356,6 +356,9 @@ body {
         <p class="text-center">
             إدارة فريقك الرياضي وتنظيم التدريبات والانخراطات بكل سهولة
         </p>
+        <p class="text-center" style="font-size:18px; font-weight:bold;">
+        📍 المنشأة: {{ Auth::user()->complex->nom ?? '—' }} 
+    </p>
     </div>
 
     <!-- Cards Section -->
@@ -366,30 +369,30 @@ body {
         <div class="card-header">
             <div class="icon-circle">👥</div>
             <div>
-                <h5>لاعبو النادي</h5>
-                <p>إدارة قوائم اللاعبين وتسجيل المنخرطين</p>
+                <h5>رياضيين النادي</h5> 
+                <p>إدارة قوائم الرياضيين وتسجيل المنخرطين</p> 
             </div>
         </div>
 
         <div class="card-stats">
             <div class="stat">
                 <div class="number">{{ $playersCount }}</div>
-                <div class="label">لاعبين</div>
+                <div class="label">عدد الرياضيين</div> 
             </div>
             <div class="stat">
                 <div class="number">{{ $coachsCount }}</div>
-                <div class="label">مدربين</div>
+                <div class="label">عدد المدربين</div> 
             </div>
             <div class="stat">
                 <div class="number">{{ $managersCount }}</div>
-                <div class="label">مسيرين</div>
+                <div class="label">عدد المسرين</div> 
             </div>
         </div>
 
         <a href="{{ route('club.persons.index') }}" class="btn-manage">
-            ⚙️ إدارة اللاعبين
+            ⚙️ إدارة الرياضيين 
         </a>
-    </div>
+    </div> 
 
     <!-- 📅 النشاطات -->
     <div class="club-players-card">
@@ -447,11 +450,12 @@ body {
  <div class="dash-box mt-4">
     <h4 class="mb-3">📌 حالة ملفك</h4>
 
-   @if($dossier)
+   @if($club)
 
     @php
-        $attachments = json_decode($dossier->attachments ?? '[]', true);
+        $attachments = json_decode($club->attachments ?? '[]', true);
         $hasFiles = is_array($attachments) && count($attachments) > 0;
+          $hasNote  = !empty($club->note_admin);
     @endphp
 
     {{-- 🟡 حالة انتظار رفع الوثائق --}}
@@ -466,18 +470,23 @@ body {
         </div>
 
     {{-- 🟢 حالة القبول --}}
-    @elseif($dossier->etat == 'approved')
+    @elseif($club->etat == 'approved')
         <div class="alert alert-success status-box">
             ✔ تم قبول ملفك! 🎉 يمكنك الآن الاستفادة من الخدمات
         </div>
 
     {{-- 🔴 حالة الرفض --}}
-    @elseif($dossier->etat == 'rejected')
+    @elseif($club->etat == 'rejected')
         <div class="alert alert-danger status-box">
             ❌ تم رفض ملفك. يرجى تعديل الوثائق وإعادة الرفع.
             <br>
-            <a href="{{ route('profile.step', 4) }}" class="btn btn-light btn-sm mt-2">
-                ✏️ إعادة رفع الوثائق
+             @if($hasNote)
+                <hr>
+                <strong>📝 ملاحظة الإدارة:</strong>
+                <div class="mt-1 small">
+                    {{ $club->note_admin }}
+                </div>
+            @endif
             </a>
         </div>
 
@@ -485,6 +494,13 @@ body {
     @else
         <div class="alert alert-warning status-box">
             ⏳ ملفك قيد الدراسة حالياً 🔔
+               @if($hasNote)
+                <hr>
+                <strong>📝 ملاحظة الإدارة:</strong>
+                <div class="mt-1 small">
+                    {{ $club->note_admin }}
+                </div>
+            @endif
         </div>
     @endif
 
@@ -493,8 +509,13 @@ body {
     <div class="alert alert-info status-box">
         ⚠ لم تقم بإرسال ملفك بعد!
         <br>
-        <a href="{{ route('profile.step', 1) }}" class="btn btn-primary btn-sm mt-2">
-            🚀 أكمل البيانات الآن
+        @if($hasNote)
+                <hr>
+                <strong>📝 ملاحظة الإدارة:</strong>
+                <div class="mt-1 small">
+                    {{ $club->note_admin }}
+                </div>
+            @endif
         </a>
     </div>
 @endif

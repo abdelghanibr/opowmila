@@ -30,5 +30,24 @@ return [
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
+    'remote' => [
+        'secret' => env('REMOTE_API_SECRET'),
+    ],
+    'guiddini' => [
+    'base_url'   => env('GUIDDINI_BASE_URL'),
+    'app_key'    => env('GUIDDINI_APP_KEY'),
+    'secret_key' => env('GUIDDINI_SECRET_KEY'),
+    'return_url' => env('GUIDDINI_RETURN_URL'),
+    'callback'   => env('GUIDDINI_CALLBACK_URL'),
+    ],
+    'satim' => [
+    'register_url' => env('SATIM_REGISTER_URL'),
+    'ack_url'      => env('SATIM_ACK_URL'),
+    'refund_url'   => env('SATIM_REFUND_URL'),
+    'username'     => env('SATIM_USERNAME'),
+    'password'     => env('SATIM_PASSWORD'),
+    'terminal_id'  => env('SATIM_TERMINAL_ID'),
+    ],
+
 
 ];

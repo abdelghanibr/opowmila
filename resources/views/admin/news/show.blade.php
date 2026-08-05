@@ -107,15 +107,17 @@
 <section class="news-hero">
     <div class="container">
 
-        @if($news->image)
-            <div class="news-image-circle">
-                <img src="{{ $storageUrl.'/'.$news->image }}" alt="{{ $news->title }}">
-            </div>
-        @else
-            <div class="news-image-circle">
-                <img src="{{ asset('images/placeholder.png') }}" alt="News">
-            </div>
-        @endif
+       @if($news->image)
+    <div class="news-image-circle">
+        <img src="{{ asset($news->image) }}"
+             alt="{{ $news->title }}">
+    </div>
+@else
+    <div class="news-image-circle">
+        <img src="{{ asset('images/placeholder.png') }}"
+             alt="News">
+    </div>
+@endif
 
         <h1 class="news-title">{{ $news->title }}</h1>
     </div>

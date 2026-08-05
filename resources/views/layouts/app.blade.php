@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ config('app.name', 'OPOW Mila') }}</title>
+    <title>{{ config('OPOW Mila', 'OPOW Mila') }}</title>
 
     {{-- Fonts --}}
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
@@ -126,6 +126,84 @@
         }
 
         main{ min-height:calc(100vh - 80px); }
+        
+        
+        
+/* -----------------------------
+   RESPONSIVE MOBILE FIXES
+--------------------------------*/
+@media (max-width: 768px) {
+
+    /* Navbar structure */
+    .navbar-modern .container-fluid {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 12px;
+        text-align: right;
+    }
+
+    /* Brand section */
+    .navbar-brand img {
+        width: 40px !important;
+        height: 40px !important;
+    }
+
+    .navbar-brand div span:first-child {
+        font-size: 13px !important;
+    }
+    .navbar-brand div span:last-child {
+        font-size: 12px !important;
+    }
+
+    /* Buttons */
+    .btn-nav {
+        padding: 6px 10px !important;
+        font-size: 12px !important;
+        border-radius: 10px !important;
+        box-shadow: none !important;
+    }
+    .btn-nav i {
+        font-size: 13px !important;
+    }
+
+    /* Buttons container */
+    .navbar-modern .d-flex.gap-2,
+    .navbar-modern .d-flex.align-items-center {
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+        width: 100%;
+        justify-content: flex-start !important;
+    }
+
+    /* User chip mobile */
+    .user-chip {
+        padding: 6px 10px !important;
+        gap: 6px !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,.12) !important;
+    }
+    .user-avatar {
+        width: 36px !important;
+        height: 36px !important;
+        font-size: 16px !important;
+    }
+    .user-name {
+        font-size: 12px !important;
+    }
+    .user-role {
+        font-size: 10px !important;
+    }
+
+    /* Logout button */
+    form button.btn-nav {
+        width: 100% !important;
+        text-align: center;
+    }
+
+}
+
+
+
+
     </style>
 
     @stack('css')
@@ -142,24 +220,44 @@
 @if(Auth::check())
 
 @php
-    $dashboardRoute = match($user->type){
-        'admin'      => route('admin.dashboard'),
-        'club'       => route('club.dashboard'),
-        'company',
-        'entreprise' => route('entreprise.dashboard'),
-        'person'     => route('person.dashboard'),
-        default      => '#'
-    };
+    $user = Auth::user();
 
+    // -------------------------
+    // 🧭  Dashboard Route
+    // -------------------------
+    if ($user->type === 'admin') {
+        // إذا كان لديه مجمع محدد
+        if (!is_null($user->complex_id) && $user->complex_id != 0) {
+            $dashboardRoute = route('admin.dashboard_complex', $user->complex_id);
+        } else {
+            $dashboardRoute = route('admin.dashboard');
+        }
+    } else {
+        // مستخدمون آخرون
+        $dashboardRoute = match($user->type){
+            'club'       => route('club.dashboard'),
+            'company',
+            'entreprise' => route('entreprise.dashboard'),
+            'person'     => route('person.dashboard'),
+            default      => '#'
+        };
+    }
+
+    // -------------------------
+    // 👤 Profile Route
+    // -------------------------
     $profileRoute = match($user->type){
         'admin'      => route('admin.profile.edit'),
         'club'       => route('club.profile.edit'),
-        'person'     => route('profile.step',1),
+        'person'     => route('person.profile.edit'),
         'company',
         'entreprise' => route('entreprise.profile.edit'),
         default      => '#'
     };
 
+    // -------------------------
+    // 📁 Dossier Route
+    // -------------------------
     $dossierRoute = match($user->type){
         'club'       => route('club.dossier.index'),
         'company',
@@ -167,6 +265,9 @@
         default      => '#'
     };
 
+    // -------------------------
+    // 🚪 Logout Route
+    // -------------------------
     $logoutRoute = match($user->type){
         'admin'      => 'admin.logout',
         'club'       => 'club.logout',
@@ -181,15 +282,19 @@
     <div class="container-fluid d-flex justify-content-between align-items-center">
 
         {{-- Logo --}}
-        <a class="navbar-brand fw-bold d-flex align-items-center" href="{{ url('/') }}">
-            <img src="{{ asset('images/djs-logo.png') }}" style="width:40px" class="ms-2">
-            OPOW Mila
+          <a class="navbar-brand d-flex align-items-center gap-2" href="#top">
+            <img src="{{ asset('images/djs-logo.png') }}" alt="Logo"
+                 style="width:48px; height:48px; object-fit:contain;">
+            <div class="d-flex flex-column lh-sm text-start">
+                <span class="fw-bold" style="font-size:15px;">وزارة الرياضة - ولاية ميلة</span>
+                <span style="font-size:14px;">ديوان المركب المتعدد الرياضات</span>
+            </div>
         </a>
 
         {{-- Actions --}}
         <div class="d-flex align-items-center gap-2 flex-wrap">
 
-            <a href="{{ url('/') }}" class="btn btn-light btn-nav">
+            <a href="{{ url('/') }}" class="btn btn-secondary btn-nav text-decoration-none">
                 <i class="fa-solid fa-house"></i> الرئيسية
             </a>
 
@@ -230,31 +335,84 @@
 </nav>
 
 @else
-{{-- ===== VISITOR ===== --}}
+{{-- ===== VISITOR NAVBAR ===== --}}
 <nav class="navbar navbar-modern">
-    <div class="container-fluid d-flex justify-content-between">
-        <a class="navbar-brand fw-bold" href="{{ url('/') }}">OPOW Mila</a>
+    <div class="container-fluid d-flex justify-content-between align-items-center">
+
+        <!-- Logo + Name -->
+        <a class="navbar-brand d-flex align-items-center gap-2" href="#top">
+            <img src="{{ asset('images/djs-logo.png') }}" alt="Logo"
+                 style="width:48px; height:48px; object-fit:contain;">
+            <div class="d-flex flex-column lh-sm text-start">
+                <span class="fw-bold" style="font-size:15px;">وزارة الرياضة - ولاية ميلة</span>
+                <span style="font-size:14px;">ديوان المركب المتعدد الرياضات</span>
+            </div>
+        </a>
+
+        <!-- Login Buttons -->
         <div class="d-flex gap-2">
+
+            {{-- Home --}}
             <a href="{{ url('/') }}" class="btn btn-light btn-nav">
                 <i class="fa-solid fa-house"></i> الرئيسية
             </a>
-            <a href="{{ route('person.login') }}" class="btn btn-main btn-nav">
-                <i class="fa-solid fa-right-to-bracket"></i> دخول
+
+            {{-- Person --}}
+            <a href="{{ route('person.login') }}" class="btn btn-primary btn-nav">
+                <i class="fa-solid fa-user"></i> حساب الرياضيين 
             </a>
+
+            {{-- Club --}}
+            <a href="{{ route('club.login') }}" class="btn btn-success btn-nav text-white">
+                <i class="fa-solid fa-people-group"></i> حساب النوادي 
+            </a>
+
+            {{-- Entreprise --}}
+            <a href="{{ route('entreprise.login') }}" class="btn btn-warning btn-nav text-white">
+                <i class="fa-solid fa-building"></i>حساب المؤسسات 
+            </a>
+
+            {{-- Admin --}}
+            <a href="{{ route('admin.login') }}" class="btn btn-danger btn-nav">
+                <i class="fa-solid fa-shield-halved"></i> حساب الإدرة 
+            </a>
+
         </div>
+
     </div>
 </nav>
 @endif
+
+
 {{-- ========================================== --}}
 
 <main class="py-4">
     @yield('content')
 </main>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 @stack('js')
 
 
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    flatpickr(".js-date-fr", {
+        dateFormat: "Y-m-d",   // التخزين (Laravel / DB)
+        altInput: true,
+        altFormat: "d/m/Y",    // العرض للمستخدم
+        allowInput: true,
+        locale: "fr"
+
+
+    
+       
+      
+       
+    });
+});
+</script>
 
 
 

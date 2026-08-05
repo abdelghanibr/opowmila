@@ -21,7 +21,7 @@
 
             <div class="mb-3">
                 <label class="form-label">تاريخ الحجز</label>
-                <input type="date" name="date_reservation" class="form-control" required>
+                <input type="text" name="date_reservation" class="form-control js-date-fr" required>
             </div>
 
             <div class="mb-3">

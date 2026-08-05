@@ -12,6 +12,8 @@ class Kernel extends HttpKernel
     'club' => \App\Http\Middleware\ClubMiddleware::class,
     'entreprise' => \App\Http\Middleware\CompanyMiddleware::class,
     'admin' => \App\Http\Middleware\AdminMiddleware::class,
+    'admin.access' => \App\Http\Middleware\CheckAdminAccess::class,
+    'verify.complex.sig' => \App\Http\Middleware\VerifyComplexSignature::class,
 ];
 
     /**
@@ -72,5 +74,9 @@ class Kernel extends HttpKernel
         'signed' => \App\Http\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+        
     ];
+    
+    
+
 }

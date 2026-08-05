@@ -8,7 +8,7 @@ class Authenticate extends Middleware
 {
     protected function redirectTo($request)
     {
-         if (! $request->expectsJson()) {
+        if (! $request->expectsJson()) {
 
         if ($request->is('admin/*')) {
             return route('admin.login');
@@ -22,9 +22,13 @@ class Authenticate extends Middleware
             return route('entreprise.login');
         }
 
-        return route('person.login');
+        if ($request->is('person/*')) {
+            return route('person.login');
+        }
+
+        // ⛔ لا redirect افتراضي
+        return route('welcome');
     }
-        
         
         
         

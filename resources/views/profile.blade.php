@@ -53,7 +53,7 @@
 
             <div class="col-md-6 mb-3">
                 <label>تاريخ الميلاد</label>
-                <input type="date" name="birth_date" class="form-control" value="{{ $user->birth_date }}">
+                <input type="text" name="birth_date" class="form-control js-date-fr" value="{{ $user->birth_date }}">
             </div>
 
             <div class="col-md-6 mb-3">
@@ -96,7 +96,7 @@
 
             <div class="col-md-6 mb-3">
                 <label>تاريخ ميلاد الولي</label>
-                <input type="date" name="parent_birth" class="form-control" value="{{ $user->parent_birth }}">
+                <input type="text" name="parent_birth" class="form-control" value="{{ $user->parent_birth }}">
             </div>
 
             <div class="col-md-6 mb-3">

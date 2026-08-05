@@ -74,9 +74,9 @@
                         {{-- START DATE --}}
                         <div class="col-md-6">
                             <label class="form-label">تاريخ البداية</label>
-                            <input type="date"
+                            <input type="text"
                                    name="start_date"
-                                   class="form-control @error('start_date') is-invalid @enderror"
+                                   class="form-control js-date-fr @error('start_date') is-invalid @enderror"
                                    value="{{ old('start_date', optional($event->start_date)->format('Y-m-d')) }}"
                                    required>
                             @error('start_date')
@@ -87,9 +87,9 @@
                         {{-- END DATE --}}
                         <div class="col-md-6">
                             <label class="form-label">تاريخ النهاية</label>
-                            <input type="date"
+                            <input type="text"
                                    name="end_date"
-                                   class="form-control @error('end_date') is-invalid @enderror"
+                                   class="form-control js-date-fr @error('end_date') is-invalid @enderror"
                                    value="{{ old('end_date', optional($event->end_date)->format('Y-m-d')) }}"
                                    required>
                             @error('end_date')
@@ -106,31 +106,42 @@
             <div class="col-12 col-lg-4">
 
                 {{-- IMAGE CARD --}}
-                <div class="card-2026 text-center">
-                    <h6 class="card-title mb-3">🖼️ صورة الحدث</h6>
+      <div class="card-2026 text-center">
+    <h6 class="card-title mb-3">🖼️ صورة الحدث</h6>
 
-                    <div class="image-preview-circle mb-3">
-                        <img id="imagePreview"
-                             src="{{ $event->image
-                                ? $storageUrl.'/'.ltrim($event->image,'/')
-                                : asset('images/placeholder.png') }}"
-                             alt="preview">
-                    </div>
+    {{-- Image preview (centered & circular) --}}
+    <div class="d-flex justify-content-center align-items-center mb-3 image-preview-circle">
+        @if($event->image)
+            <img id="imagePreview"
+                 src="{{ asset($event->image) }}"
+                 alt="Event image"
+                 class="rounded-circle shadow-sm"
+                 style="width:120px;height:120px;object-fit:cover;">
+        @else
+            <img id="imagePreview"
+                 src="{{ asset('images/placeholder.png') }}"
+                 alt="No image"
+                 class="rounded-circle shadow-sm"
+                 style="width:120px;height:120px;object-fit:cover;">
+        @endif
+    </div>
 
-                    <input type="file"
-                           name="image"
-                           id="imageInput"
-                           class="form-control @error('image') is-invalid @enderror"
-                           accept="image/*">
+    {{-- File input --}}
+    <input type="file"
+           name="image"
+           id="imageInput"
+           class="form-control @error('image') is-invalid @enderror"
+           accept="image/*">
 
-                    @error('image')
-                        <div class="invalid-feedback d-block">{{ $message }}</div>
-                    @enderror
+    @error('image')
+        <div class="invalid-feedback d-block">{{ $message }}</div>
+    @enderror
 
-                    <small class="text-muted d-block mt-2">
-                        إذا لم تغيّر الصورة ستبقى الحالية
-                    </small>
-                </div>
+    <small class="text-muted d-block mt-2">
+        إذا لم تغيّر الصورة ستبقى الحالية
+    </small>
+</div>
+
 
                 {{-- ACTIVE CARD --}}
                 <div class="card-2026 mt-4">

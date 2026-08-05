@@ -3,7 +3,7 @@
 @section('content')
 <div class="container" style="max-width:700px">
 
-<h4 class="fw-bold mb-4">✏ تعديل الموسم</h4>
+<h4 class="fw-bold mb-4">✏ تعديل</h4>
 
 <form method="POST" action="{{ route('seasons.update',$season) }}">
 @csrf @method('PUT')
@@ -29,12 +29,12 @@
 <div class="row">
     <div class="col-md-6 mb-3">
         <label>تاريخ البداية</label>
-        <input type="date" name="date_debut"
-               value="{{ $season->date_debut }}" class="form-control">
+        <input type="text" name="date_debut"
+               value="{{ $season->date_debut }}" class="form-control js-date-fr">
     </div>
     <div class="col-md-6 mb-3">
         <label>تاريخ النهاية</label>
-        <input type="date" name="date_fin"
+        <input type="text" name="date_fin"
                value="{{ $season->date_fin }}" class="form-control">
     </div>
 </div>

@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers\Auth;
-
+use Illuminate\Support\Facades\Http;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,44 +24,47 @@ class LoginController extends Controller
    
 public function login(Request $request)
 {
-    // التحقق من المدخلات
+    dd('LOGIN CONTROLLER HIT');
+    
+    
+    // ✅ VALIDATION (CAPTCHA إجباري)
     $request->validate([
-        'login' => 'required|string',
-        'password' => 'required|string',
+        'email'                 => 'required|email',
+        'password'              => 'required',
+        'g-recaptcha-response'  => 'required',
+    ], [
+        'g-recaptcha-response.required' => '❌ يرجى تأكيد أنك لست روبوتًا',
     ]);
 
-    // نحدد إذا كان ما أدخله المستخدم هو بريد أو اسم مستخدم
-    $loginField = filter_var($request->login, FILTER_VALIDATE_EMAIL)
-        ? 'email'
-        : 'username';
+    // ✅ VERIFICATION GOOGLE
+    $response = Http::asForm()->post(
+        'https://www.google.com/recaptcha/api/siteverify',
+        [
+            'secret'   => env('RECAPTCHA_SECRET_KEY'),
+            'response' => $request->input('g-recaptcha-response'),
+            'remoteip' => $request->ip(),
+        ]
+    );
 
-    // نبحث هل المستخدم موجود أصلاً في قاعدة البيانات
-    $user = \App\Models\User::where($loginField, $request->login)->first();
-
-    // إن لم نجد المستخدم → الخطأ من البريد/اسم المستخدم
-    if (!$user) {
-        return back()->withErrors([
-            'login' => '❌ البريد الإلكتروني أو اسم المستخدم غير صحيح.',
-        ])->withInput();
+    if (!($response->json()['success'] ?? false)) {
+        return back()
+            ->withErrors(['g-recaptcha-response' => '❌ فشل التحقق من reCAPTCHA'])
+            ->withInput();
     }
 
-    // إن وجد المستخدم ولكن كلمة المرور خطأ
-    if (!\Hash::check($request->password, $user->password)) {
-        return back()->withErrors([
-            'password' => '❌ كلمة المرور غير صحيحة.',
-        ])->withInput();
+    // ✅ AUTH NORMAL
+    if (Auth::attempt(
+        ['email' => $request->email, 'password' => $request->password],
+        $request->filled('remember')
+    )) {
+        return redirect()->route('admin.dashboard');
     }
 
-    // محاولة تسجيل الدخول
-    if (Auth::attempt([$loginField => $request->login, 'password' => $request->password], $request->filled('remember'))) {
-        return redirect()->route('dashboard');
-    }
-
-    // احتياط (لن نصل لها عادة)
     return back()->withErrors([
-        'login' => '❌ خطأ غير متوقع أثناء تسجيل الدخول.',
+        'email' => '❌ البريد الإلكتروني أو كلمة المرور غير صحيحة',
     ]);
 }
+
 
     /**
      * تسجيل الخروج

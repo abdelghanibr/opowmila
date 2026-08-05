@@ -18,7 +18,7 @@ class Schedule extends Model
         'time_slots',
         'type_prix',
         'price',
-        'user_id',        // club / entreprise (nullable)
+        'user_id', 'type_season','date_debut','date_fin'  ,'active' ,     // club / entreprise (nullable)
     ];
 
     /**
@@ -26,6 +26,8 @@ class Schedule extends Model
      */
     protected $casts = [
         'time_slots' => 'array',
+        'date_debut' => 'date',
+    'date_fin'   => 'date',
     ];
 
     /**

@@ -14,14 +14,17 @@ class User extends Authenticatable
         'email',
         'password',
         'phone',
-        'type'
+        'type','complex_id','nin' ,
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
     ];
-
+   public function complex()
+    {
+        return $this->belongsTo(Complex::class, 'complex_id');
+    }
     // علاقة لكل نوع مستخدم
     public function person()
     {
@@ -42,4 +45,11 @@ class User extends Authenticatable
     {
         return $this->hasMany(Reservation::class);
     }
+    
+
+
+public function latestReservation()
+{
+    return $this->hasOne(Reservation::class)->ofMany('start_date', 'max');
+}
 }

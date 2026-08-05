@@ -54,11 +54,19 @@
                     {{-- تاريخ الميلاد --}}
                     <div class="col-md-6">
                         <label class="form-label fw-bold">تاريخ الميلاد</label>
-                        <input type="date" name="birth_date"
-                               class="form-control form-control-lg rounded-3"
+                        <input type="text" name="birth_date"
+                               class="form-control js-date-fr form-control-lg rounded-3"
                                value="{{ old('birth_date', $person->birth_date) }}"
                                required>
                     </div>
+{{-- رقم الإجازة --}}
+<div class="col-md-6">
+    <label class="form-label fw-bold">رقم الإجازة</label>
+    <input type="text" name="license_number"
+           class="form-control form-control-lg rounded-3"
+           value="{{ old('license_number', $person->license_number) }}"
+           required>
+</div>
 
                     {{-- الجنس --}}
                     <div class="col-md-6">
@@ -86,37 +94,47 @@
                         </select>
                     </div>
 
-                    {{-- الصورة --}}
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">📷 الصورة الشمسية</label>
+                  {{-- الصورة --}}
+<div class="col-md-6">
+    <label class="form-label fw-bold">📷 الصورة الشمسية</label>
 
-                        <input type="file"
-                               name="photo"
-                               id="photoInput"
-                               class="form-control form-control-lg rounded-3"
-                               accept="image/jpeg,image/png">
+    <input type="file"
+           name="photo"
+           id="photoInput"
+           class="form-control form-control-lg rounded-3"
+           accept="image/jpeg,image/png">
 
-                        {{-- Preview --}}
-                        <div class="text-center mt-3">
-                            <img id="photoPreview"
-                                 src="{{ $person->photo ? asset('storage/'.$person->photo) : asset('images/avatar-placeholder.png') }}"
-                                 class="rounded-circle shadow-sm"
-                                 style="width:120px;height:120px;object-fit:cover;">
-                        </div>
+    {{-- Preview --}}
+    <div class="text-center mt-3">
 
-                        {{-- شروط الصورة --}}
-                        <div class="photo-rules mt-3">
-                            <div class="rules-title">⭐ شروط الصورة</div>
-                            <ul class="rules-list">
-                                <li>خلفية بيضاء</li>
-                                <li>الصيغة JPG أو PNG</li>
-                                <li>الحجم أقل من 2MB</li>
-                                <li>صورة حديثة (≤ 6 أشهر)</li>
-                            </ul>
-                        </div>
-                    </div>
+        @if($person->photo)
+            <img id="photoPreview"
+                 src="{{ asset($person->photo) }}"
+                 alt="Photo"
+                 class="rounded-circle shadow-sm"
+                 style="width:120px;height:120px;object-fit:cover;">
+        @else
+            <img id="photoPreview"
+                 src="{{ asset('images/avatar-placeholder.png') }}"
+                 alt="No photo"
+                 class="rounded-circle shadow-sm"
+                 style="width:120px;height:120px;object-fit:cover;">
+        @endif
 
-                </div>
+    </div>
+
+    {{-- شروط الصورة --}}
+    <div class="photo-rules mt-3">
+        <div class="rules-title">⭐ شروط الصورة</div>
+        <ul class="rules-list">
+            <li>خلفية بيضاء</li>
+            <li>الصيغة JPG أو PNG</li>
+            <li>الحجم أقل من 2MB</li>
+            <li>صورة حديثة (≤ 6 أشهر)</li>
+        </ul>
+    </div>
+</div>
+
 
                 {{-- زر الحفظ --}}
                 <div class="text-center mt-5">
@@ -174,10 +192,11 @@ document.getElementById('photoInput').addEventListener('change', function (e) {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = function (e) {
-        document.getElementById('photoPreview').src = e.target.result;
+    reader.onload = function (event) {
+        document.getElementById('photoPreview').src = event.target.result;
     };
     reader.readAsDataURL(file);
 });
 </script>
+
 @endsection

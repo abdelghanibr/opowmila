@@ -3,7 +3,7 @@
 @section('content')
 <div class="container py-4" style="direction: rtl; text-align: right;">
 
-    <h3 class="mb-3 fw-bold">📁 إدارة ملفات المشتركين</h3>
+   <h3 class="mb-3 fw-bold">📁 دراسة ملفات الرياضيين</h3>
 
     {{-- ===== الفلاتر ===== --}}
 {{-- ===== الفلاتر ===== --}}
@@ -57,6 +57,7 @@
                     <th>الحالة</th>
                     <th>التاريخ</th>
                     <th>المرفقات</th>
+                    <th>تاريخ الموافقة</th>
                     <th>ملاحظة</th>
                     <th>إجراءات</th>
                 </tr>
@@ -115,7 +116,7 @@
                         @endif
                     </td>
 
-                    <td class="small">{{ $d->created_at->format('d-m-Y') }}</td>
+                    <td class="small">{{ $d->created_at }}</td>
 
                     {{-- المرفقات --}}
                     <td class="text-start">
@@ -138,7 +139,14 @@
                             —
                         @endif
                     </td>
-
+  <td>@if($d->validated_at)
+  <small class="text-muted">
+    {{ $d->etat === 'approved' ? '✔️ مقبول' : '❌ مرفوض' }}
+    بتاريخ {{ $d->validated_at}} 
+    بواسطة {{ $d->validator->name ?? '—' }}
+  </small>
+@endif
+</td>
                    <td class="small text-start">
     @if($d->note_admin)
         <span class="text-muted">{{ $d->note_admin }}</span>

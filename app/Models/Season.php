@@ -19,10 +19,10 @@ class Season extends Model
 
     public const TYPES = [
         'session'   => 'حصة',
-        'weekly'    => 'أسبوعي',
+       
         'monthly'   => 'شهري',
-        'quarterly' => 'ثلاثي',
-        'semester'  => 'سداسي',
+    
+ 
         'season'    => 'موسم',
         'ticket'    => 'تذكرة',
     ];

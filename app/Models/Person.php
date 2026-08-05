@@ -14,6 +14,8 @@ class Person extends Model
     'birth_date',
     'birth_city',
     'gender',
+    'blood_type',
+    'profession',
     'handicap',
     'phone',
     'address',
@@ -30,7 +32,7 @@ class Person extends Model
     'parent_phone',
     'parent_relation',
     'age_category_id',
-    'club_id'
+    'club_id','license_number' ,'tuteur_fullname'
 
 
      

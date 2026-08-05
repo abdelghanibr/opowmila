@@ -16,11 +16,11 @@
         <div class="row g-3">
             <div class="col-md-6">
                 <label class="fw-bold">تاريخ البداية</label>
-                <input type="date" name="date_debut" class="form-control" required>
+                <input type="text" name="date_debut" class="form-control js-date-fr" required>
             </div>
             <div class="col-md-6">
                 <label class="fw-bold">تاريخ النهاية</label>
-                <input type="date" name="date_fin" class="form-control" required>
+                <input type="text" name="date_fin" class="form-control js-date-fr" required>
             </div>
         </div>
 

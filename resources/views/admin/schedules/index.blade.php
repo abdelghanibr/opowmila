@@ -4,31 +4,31 @@
 
 <div class="container py-4" style="direction: rtl; text-align:right;">
 
+    {{-- HEADER --}}
     <div class="p-3 mb-4"
          style="background: linear-gradient(to right, #0a4f88, #0a8a67);
                 border-radius: 10px;
                 color: #fff;
                 font-weight:600;">
         <div class="d-flex justify-content-between align-items-center">
-            <span>📅 إدارة الجداول الزمنية (Schedules)</span>
+            <span>📅 إدارة الأفواج (Schedules)</span>
 
             <a href="{{ route('admin.schedules.create') }}" class="btn btn-light fw-bold">
-                + إضافة جدول
+                + إضافة فوج
             </a>
         </div>
     </div>
 
-    {{-- 🔍 فلاتر البحث --}}
+    {{-- FILTERS --}}
     <div class="card p-3 shadow-sm mb-3">
-
         <div class="row g-3">
 
             <div class="col-md-3">
-                <label>المركب</label>
+                <label>المنشأة</label>
                 <select id="filterComplex" class="form-control">
                     <option value="">الكل</option>
                     @foreach($complexes as $c)
-                    <option value="{{ $c->nom }}">{{ $c->nom }}</option>
+                        <option value="{{ $c->nom }}">{{ $c->nom }}</option>
                     @endforeach
                 </select>
             </div>
@@ -38,22 +38,8 @@
                 <select id="filterActivity" class="form-control">
                     <option value="">الكل</option>
                     @foreach($activities as $a)
-                    <option value="{{ $a->title }}">{{ $a->title }}</option>
+                        <option value="{{ $a->title }}">{{ $a->title }}</option>
                     @endforeach
-                </select>
-            </div>
-
-            <div class="col-md-2">
-                <label>اليوم</label>
-                <select id="filterDay" class="form-control">
-                    <option value="">الكل</option>
-                    <option value="الأحد">الأحد</option>
-                    <option value="الإثنين">الإثنين</option>
-                    <option value="الثلاثاء">الثلاثاء</option>
-                    <option value="الأربعاء">الأربعاء</option>
-                    <option value="الخميس">الخميس</option>
-                    <option value="الجمعة">الجمعة</option>
-                    <option value="السبت">السبت</option>
                 </select>
             </div>
 
@@ -68,9 +54,9 @@
             </div>
 
         </div>
-
     </div>
 
+    {{-- TABLE --}}
     <div class="card p-3 shadow-sm">
 
         <table id="schedulesTable" class="table table-bordered table-striped text-center align-middle">
@@ -81,14 +67,15 @@
                     <th>النشاط</th>
                     <th>الفئة العمرية</th>
                     <th>المجموعة</th>
-                    <th>اليوم</th>
                     <th>الساعات المختارة</th>
                     <th>الجنس</th>
                     <th>العدد</th>
-                    <th>نوع التسعير</th>
-<th>السعر</th>
-<th>مخصص لـ</th>
-
+                    <th>عدد الحجوزات</th>
+                    <th>السعر</th>
+                    <th>مخصص لـ</th>
+                    <th>نوع الاشتراك</th>
+                    <th>الفترة</th>
+                    <th>الحالة</th>
                     <th>التحكم</th>
                 </tr>
             </thead>
@@ -96,30 +83,19 @@
             <tbody>
                 @foreach($schedules as $s)
 
-                <tr>
+                <tr
+                    data-complex="{{ $s->complexActivity->complex->nom ?? '' }}"
+                    data-activity="{{ $s->complexActivity->activity->title ?? '' }}"
+                    data-sex="{{ $s->sex == 'H' ? 'ذكور' : ($s->sex == 'F' ? 'إناث' : 'مختلط') }}"
+                >
                     <td>{{ $s->id }}</td>
                     <td>{{ $s->complexActivity->complex->nom ?? '—' }}</td>
                     <td>{{ $s->complexActivity->activity->title ?? '—' }}</td>
                     <td>{{ $s->ageCategory->name ?? '—' }}</td>
                     <td>{{ $s->groupe }}</td>
 
-                    {{-- 🟦 اليوم --}}
-                    <td>
-                        @php
-                            $days = [
-                                'dimanche' => 'الأحد',
-                                'lundi' => 'الإثنين',
-                                'mardi' => 'الثلاثاء',
-                                'mercredi' => 'الأربعاء',
-                                'jeudi' => 'الخميس',
-                                'vendredi' => 'الجمعة',
-                                'samedi' => 'السبت'
-                            ];
-                        @endphp
-                        {{ $days[$s->day_of_week] ?? $s->day_of_week }}
-                    </td>
-
-                    {{-- 🟦 عرض time_slots --}}
+                    {{-- slots removed --}}
+                {{-- 🟦 عرض time_slots --}}
                     <td style="text-align:right;">
                         @php
                             $slots = $s->time_slots;
@@ -143,17 +119,17 @@
                         @endphp
 
                         @forelse ($slots as $slot)
-                            <div class="p-1 mb-1" style="background:#eef;border-radius:6px;">
-                                <strong>{{ $daysMap[$slot['day_number']] ?? '—' }}</strong>
-                                :
-                                {{ $slot['start'] ?? '??' }} → {{ $slot['end'] ?? '??' }}
-                            </div>
+                            
+                            
+                            
+        <div class="badge bg-secondary d-block mb-1 text-start">
+            📅 {{ $daysMap[$slot['day_number']] ?? '—' }}<br>
+            ⏱ {{ $slot['start'] ?? '?' }} → {{ $slot['end'] ?? '?' }}
+        </div>
                         @empty
                             <span class="text-muted">لا توجد مواعيد</span>
                         @endforelse
                     </td>
-
-                    {{-- الجنس --}}
                     <td>
                         @if($s->sex == 'H') ذكور
                         @elseif($s->sex == 'F') إناث
@@ -162,54 +138,87 @@
                     </td>
 
                     <td>{{ $s->nbr ?? '—' }}</td>
-{{-- نوع التسعير --}}
-<td>
-    @if($s->type_prix == 'pricing_plan')
-        <span class="badge bg-info">حسب خطة التسعير</span>
-    @else
-        <span class="badge bg-warning">سعر ثابت</span>
-    @endif
-</td>
 
-{{-- السعر --}}
-<td>
-    @if($s->type_prix == 'fix')
-        {{ $s->price }} دج
-    @else
-        —
-    @endif
-</td>
+                    <td>
+                     @if(isset($scheduleSeasonCounts[$s->id]))
+    @foreach($scheduleSeasonCounts[$s->id]->reverse()->take(2) as $row)
+        <span class="badge bg-primary d-inline-block mb-1">
+            {{ $row->season_name }} : {{ $row->total }}
+        </span><br>
+    @endforeach
+@else
+    <span class="text-muted">0</span>
+@endif
+                    </td>
 
-{{-- user_id --}}
-<td>
-    @if($s->user_id)
-        {{ $s->user->name }} <br>
-        <small class="text-muted">({{ $s->user->type }})</small>
-    @else
-        —
-    @endif
-</td>
+                    <td>
+                        @if($s->type_prix == 'fix')
+                            {{ $s->price }} دج
+                        @else
+                            —
+                        @endif
+                    </td>
+
+                    <td>
+                        @if($s->user_id)
+                            {{ $s->user->name }}<br>
+                            <small class="text-muted">({{ $s->user->type }})</small>
+                        @else
+                            —
+                        @endif
+                    </td>
+
+                    <td>
+                        @php
+                            $labels = [
+                                'session'=>'جلسة',
+                                'weekly'=>'أسبوعي',
+                                'monthly'=>'شهري',
+                                'quarterly'=>'ثلاثي',
+                                'semester'=>'سداسي',
+                                'season'=>'موسمي',
+                                'ticket'=>'تذكرة',
+                            ];
+                        @endphp
+                        <span class="badge bg-info text-dark">
+                            {{ $labels[$s->type_season] ?? '—' }}
+                        </span>
+                    </td>
+
+                    <td>
+                        <small>
+                            {{ $s->date_debut?->format('Y-m-d') }}
+                            →
+                            {{ $s->date_fin?->format('Y-m-d') }}
+                        </small>
+                    </td>
+
+                    <td>
+                        @if($s->active)
+                            <span class="badge bg-success">نشط</span>
+                        @else
+                            <span class="badge bg-secondary">غير نشط</span>
+                        @endif
+                    </td>
 
                     <td>
                         <a href="{{ route('admin.schedules.edit', $s->id) }}"
-                            class="btn btn-warning btn-sm">✏ تعديل</a>
+                           class="btn btn-warning btn-sm">✏ تعديل</a>
 
                         <form action="{{ route('admin.schedules.destroy', $s->id) }}"
                               method="POST" class="d-inline">
                             @csrf
                             @method('DELETE')
-
                             <button class="btn btn-danger btn-sm"
                                 onclick="return confirm('هل أنت متأكد من الحذف؟')">
                                 🗑 حذف
                             </button>
                         </form>
                     </td>
-
                 </tr>
+
                 @endforeach
             </tbody>
-
         </table>
 
     </div>
@@ -222,36 +231,37 @@
 @include('admin.partials.datatable-script', ['tableId' => '#schedulesTable'])
 
 <script>
-$(document).ready(function() {
-    let table = $('#schedulesTable').DataTable();
+$(document).ready(function () {
 
-    // 🔍 فلاتر البحث
-    $('#filterComplex, #filterActivity, #filterDay, #filterSex').on('change', function () {
+    // ✅ استخدم نفس الـ instance التي أنشأها partial
+    let table = $.fn.dataTable.isDataTable('#schedulesTable')
+        ? $('#schedulesTable').DataTable()
+        : $('#schedulesTable').DataTable();
+
+    $('#filterComplex, #filterActivity, #filterSex').on('change', function () {
         table.draw();
     });
 
-    $.fn.dataTable.ext.search.push(
-        function(settings, data, dataIndex) {
+    $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
 
-            let complex = $('#filterComplex').val();
-            let activity = $('#filterActivity').val();
-            let day = $('#filterDay').val();
-            let sex = $('#filterSex').val();
+        let complex  = $('#filterComplex').val();
+        let activity = $('#filterActivity').val();
+        let sex      = $('#filterSex').val();
 
-            let col_complex = data[1];
-            let col_activity = data[2];
-            let col_day = data[5];
-            let col_sex = data[8];
+        let row = table.row(dataIndex).node();
 
-            if (complex && col_complex !== complex) return false;
-            if (activity && col_activity !== activity) return false;
-            if (day && col_day !== day) return false;
-            if (sex && col_sex !== sex) return false;
+        let rowComplex  = $(row).data('complex') || '';
+        let rowActivity = $(row).data('activity') || '';
+        let rowSex      = $(row).data('sex') || '';
 
-            return true;
-        }
-    );
+        if (complex && rowComplex !== complex) return false;
+        if (activity && rowActivity !== activity) return false;
+        if (sex && rowSex !== sex) return false;
+
+        return true;
+    });
 });
+
 </script>
 
 @endpush

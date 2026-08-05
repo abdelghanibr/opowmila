@@ -318,6 +318,9 @@ body{
         <p class="text-center">
             إدارة مؤسستك، موظفيك، وملفاتك الإدارية بكل سهولة
         </p>
+        <p class="text-center" style="font-size:18px; font-weight:bold;">
+        📍 المنشأة: {{ Auth::user()->complex->nom ?? '—' }} 
+    </p>
     </div>
 
     {{-- ===== Cards Section ===== --}}
@@ -400,64 +403,104 @@ body{
     </div>
 
     {{-- ===== 📁 Dossier Entreprise ===== --}}
-    <div class="club-card">
-        <div class="club-header">
-            📁 ملف المؤسسة
+   <div class="club-card">
+    <div class="club-header p-3 fw-bold">
+        📁 ملف النادي
+    </div>
+
+    <div class="p-3 text-center">
+ <div class="dash-box mt-4">
+    <h4 class="mb-3">📌 حالة ملفك</h4>
+
+   @if($club)
+
+    @php
+        $attachments = json_decode($club->attachments ?? '[]', true);
+        $hasFiles = is_array($attachments) && count($attachments) > 0;
+          $hasNote  = !empty($club->note_admin);
+    @endphp
+
+    {{-- 🟡 حالة انتظار رفع الوثائق --}}
+    @if(!$hasFiles)
+        <div class="alert alert-info status-box">
+            ⚠ ملفك غير مكتمل!
+            <br>يرجى رفع الوثائق المطلوبة لإكمال معالجة الطلب.
+            <br>
+            <a href="{{ route('profile.step', 4) }}" class="btn btn-primary btn-sm mt-2">
+                📤 استكمال رفع الوثائق
+            </a>
         </div>
 
-        <div class="p-3 text-center">
-            <div class="dash-box mt-4">
+    {{-- 🟢 حالة القبول --}}
+    @elseif($club->etat == 'approved')
+        <div class="alert alert-success status-box">
+            ✔ تم قبول ملفك! 🎉 يمكنك الآن الاستفادة من الخدمات
+        </div>
 
-                <h4 class="mb-3">📌 حالة ملف المؤسسة</h4>
+    {{-- 🔴 حالة الرفض --}}
+    @elseif($club->etat == 'rejected')
+        <div class="alert alert-danger status-box">
+            ❌ تم رفض ملفك. يرجى تعديل الوثائق وإعادة الرفع.
+            <br>
+             @if($hasNote)
+                <hr>
+                <strong>📝 ملاحظة الإدارة:</strong>
+                <div class="mt-1 small">
+                    {{ $club->note_admin }}
+                </div>
+            @endif
+            </a>
+        </div>
 
-                @if($dossier)
+    {{-- 🕒 حالة قيد الدراسة --}}
+    @else
+        <div class="alert alert-warning status-box">
+            ⏳ ملفك قيد الدراسة حالياً 🔔
+               @if($hasNote)
+                <hr>
+                <strong>📝 ملاحظة الإدارة:</strong>
+                <div class="mt-1 small">
+                    {{ $club->note_admin }}
+                </div>
+            @endif
+        </div>
+    @endif
 
-                    @if($dossier->etat === 'approved')
-                        <div class="alert alert-success status-box">
-                            ✔ تم قبول ملف مؤسستك 🎉
-                        </div>
-                    @elseif($dossier->etat === 'rejected')
-                        <div class="alert alert-danger status-box">
-                            ❌ تم رفض ملف المؤسسة
-                            <br>
-                            <a href="{{ route('profile.step', 4) }}"
-                               class="btn btn-light btn-sm mt-2">
-                                ✏️ تعديل الملف
-                            </a>
-                        </div>
-                    @else
-                        <div class="alert alert-warning status-box">
-                            ⏳ ملف المؤسسة قيد الدراسة
-                        </div>
-                    @endif
+@else
+    {{-- لا يوجد دوسيي بعد --}}
+    <div class="alert alert-info status-box">
+        ⚠ لم تقم بإرسال ملفك بعد!
+        <br>
+        @if($hasNote)
+                <hr>
+                <strong>📝 ملاحظة الإدارة:</strong>
+                <div class="mt-1 small">
+                    {{ $club->note_admin }}
+                </div>
+            @endif
+        </a>
+    </div>
+@endif
 
-                @else
-                    <div class="alert alert-info status-box">
-                        ⚠ لم يتم إرسال ملف المؤسسة بعد
-                        <br>
-                        <a href="{{ route('profile.step', 1) }}"
-                           class="btn btn-primary btn-sm mt-2">
-                            🚀 إكمال البيانات
-                        </a>
-                    </div>
-                @endif
+</div>
+       
 
-            </div>
+        <div class="d-grid gap-2 mt-3">
+            <a href="{{ route('club.dossier.index') }}"
+               class="btn btn-club-outline">
+               👁 عرض الملف
+            </a>
 
-            <div class="d-grid gap-2 mt-3">
-                <a href="{{ route('entreprise.dossier.index') }}"
-                   class="btn btn-club-outline">
-                   👁 عرض الملف
-                </a>
-
-                <a href="{{ route('entreprise.dossier.edit') }}"
-                   class="btn btn-club-primary">
-                   ✏️ تعديل / إكمال الملف
-                </a>
-            </div>
+            <a href="{{ route('club.dossier.edit') }}"
+               class="btn btn-club-primary">
+               ✏️ تعديل / إكمال الملف
+            </a>
         </div>
     </div>
-  
+</div>
+
+
+   
 {{-- ================= 📄 تحميل النماذج ================= --}}
 <div class="club-card mt-4">
     <div class="club-header">

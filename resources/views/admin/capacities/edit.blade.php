@@ -4,7 +4,7 @@
 
 <div class="container py-4" style="direction: rtl; text-align:right">
 
-    <h3 class="fw-bold mb-4">✏ تعديل السعة</h3>
+    <h3 class="fw-bold mb-4">✏ تعديل طاقة الإستيعاب</h3>
 
     @if ($errors->any())
         <div class="alert alert-danger">
@@ -22,7 +22,7 @@
         @method('PUT')
 
         {{-- المركب الرياضي --}}
-        <label class="form-label fw-bold">🏟️ المركّب</label>
+     <label class="form-label fw-bold"> 🏟️ المنشاة</label> 
         <select name="complex_id" class="form-control mb-3" required>
             @foreach($complexes as $c)
                 <option value="{{ $c->id }}" {{ $capacity->complex_id == $c->id ? 'selected' : '' }}>
@@ -44,7 +44,7 @@
      
 
         {{-- السعة --}}
-        <label class="form-label fw-bold">👥 السعة</label>
+        <label class="form-label fw-bold">👥 طاقة الإستيعاب</label>
         <input type="number" name="capacity" class="form-control mb-4"
                value="{{ $capacity->capacity }}" required min="0">
 

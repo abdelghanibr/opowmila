@@ -43,7 +43,7 @@
         <!-- Search -->
         <form method="GET" class="d-flex">
             <input type="text" name="search"
-                   class="form-control"
+                   class="form-control js-date-fr"
                    placeholder="🔍 ابحث عن مركب..."
                    style="border-radius: 8px; width:200px;">
         </form>

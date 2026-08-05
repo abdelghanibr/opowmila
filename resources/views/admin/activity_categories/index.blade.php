@@ -5,11 +5,11 @@
 
     {{-- HEADER --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="fw-bold mb-0">📂 أصناف الأنشطة الرياضية</h4>
+              <h4 class="fw-bold mb-0">📂 أنواع الرياضات</h>
 
         <a href="{{ route('activity-categories.create') }}"
            class="btn btn-primary">
-            ➕ إضافة صنف
+        إضافة نوع جديد
         </a>
     </div>
 
@@ -31,7 +31,7 @@
                     <tr>
                         <th>#</th>
                     
-                        <th>اسم الصنف</th>
+                          <th>اسم النوع</th>
                        
                         <th>اللون</th>
                         <th>تاريخ الإنشاء</th>

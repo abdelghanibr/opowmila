@@ -95,6 +95,31 @@
             }
         }
     </style>
+    
+    @php
+    $shareTitle = $event->title;
+    $shareDescription = \Illuminate\Support\Str::limit(strip_tags($event->description), 160);
+    $shareImage = $event->image
+        ? asset($event->image)
+        : asset('images/placeholder.png');
+    $shareUrl = route('events.show', $event->id);
+@endphp
+
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content="article">
+<meta property="og:title" content="{{ $shareTitle }}">
+<meta property="og:description" content="{{ $shareDescription }}">
+<meta property="og:image" content="{{ $shareImage }}">
+<meta property="og:url" content="{{ $shareUrl }}">
+<meta property="og:site_name" content="ديوان المركب المتعدد الرياضات - ميلة">
+
+<!-- Twitter (اختياري لكنه جيد) -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ $shareTitle }}">
+<meta name="twitter:description" content="{{ $shareDescription }}">
+<meta name="twitter:image" content="{{ $shareImage }}">
+    
+    
 </head>
 <body>
 
@@ -108,15 +133,18 @@
 <section class="event-hero">
     <div class="container">
 
-        @if($event->image)
-            <div class="event-image-circle">
-                <img src="{{ $storageUrl.'/'.$event->image }}" alt="{{ $event->title }}">
-            </div>
-        @else
-            <div class="event-image-circle">
-                <img src="{{ asset('images/placeholder.png') }}" alt="Event">
-            </div>
-        @endif
+       @if($event->image)
+    <div class="event-image-circle">
+        <img src="{{ asset($event->image) }}"
+             alt="{{ $event->title }}">
+    </div>
+@else
+    <div class="event-image-circle">
+        <img src="{{ asset('images/placeholder.png') }}"
+             alt="Event">
+    </div>
+@endif
+
 
         <h1 class="event-title">{{ $event->title }}</h1>
     </div>

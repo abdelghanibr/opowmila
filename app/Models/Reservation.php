@@ -25,11 +25,17 @@ class Reservation extends Model
         'duration_hours',   // مجموع الساعات في الموسم
         'total_price',      // السعر الكلي
         'status',  
-        'pricing_plan_id'   , 'schedule_id' ,  'statut' ,'payment_status','qty_places' ,'end_date' ,'start_time' , 'end_time' ,// Pending / Confirmed / Rejected
+        'pricing_plan_id'   , 'schedule_id' ,  'statut' ,'payment_status','qty_places' ,'end_date' ,'start_time' , 'end_time' ,  'payment_id'// Pending / Confirmed / Rejected
 
 
         
     ];
+public static function resolveTypeShedelaire($schedule, $season)
+{
+    return $schedule->type === 'monthly'
+        ? $season->type_season
+        : $schedule->type;
+}
 
     // لقراءة JSON تلقائيًا كمصفوفة
     protected $casts = [
@@ -44,6 +50,11 @@ public function getAlertExpiredAttribute()
         && $this->date_fin
         && now()->gt(Carbon::parse($this->date_fin)->addDays(5));
 }
+public function updater()
+{
+    return $this->belongsTo(User::class, 'updated_by');
+}
+
 public function getEtatLabelAttribute()
 {
     if ($this->payment_status === 'paid' && $this->end_date) {
@@ -84,6 +95,12 @@ public function getEtatLabelAttribute()
     /* 🔗 العلاقـات */
 
     // صاحب الحجز (قد يكون شخص / نادي / مؤسسة)
+  
+  public function payment()
+{
+    return $this->belongsTo(\App\Models\Payment::class, 'payment_id', 'id');
+}
+  
     public function user() {
         return $this->belongsTo(User::class);
     }
@@ -123,14 +140,16 @@ public function getDayName($dayNumber)
 {
     return match ($dayNumber) {
         0 => 'الأحد',
-        2 => 'الإثنين',
-        3 => 'الثلاثاء',
-        4 => 'الأربعاء',
-        5 => 'الخميس',
-        6 => 'الجمعة',
-        7 => 'السبت',
+        1 => 'الإثنين',
+        2 => 'الثلاثاء',
+        3 => 'الأربعاء',
+        4 => 'الخميس',
+        5 => 'الجمعة',
+        6 => 'السبت',
       
         default => 'غير معروف',
     };
 }
+
+
 }

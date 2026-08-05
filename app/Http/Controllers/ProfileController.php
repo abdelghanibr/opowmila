@@ -47,7 +47,7 @@ public function showStep($step)
         "الجلفة","جيجل","سطيف","سعيدة","سكيكدة","سيدي بلعباس","عنابة","قالمة",
         "قسنطينة","المدية","مستغانم","المسيلة","معسكر","ورقلة","وهران","البيض",
         "إليزي","برج بوعريريج","بومرداس","الطارف","تندوف","تيسمسيلت","الوادي",
-        "خنشلة","سوق أهراس","تيبازة","ميلة","عين الدفلى","النعامة","عين تموشنت",
+        "خنشلة","سوق أهراس","تيبازة","البيض","عين الدفلى","النعامة","عين تموشنت",
         "غرداية","غليزان"
     ];
 
@@ -72,13 +72,16 @@ $person = Person::where('user_id', $user->id)->orderByDesc('id')->firstOrFail();
                 $validated = $request->validate([
                     'firstname' => 'required|string|max:50',
                     'lastname' => 'required|string|max:50',
-                    'birth_date' => 'required|date',
+                  'birth_date' => 'required|date|before:-3 years',
                     'gender' => 'required',
-                    'handicap' => 'required'
+                    'blood_type' => 'nullable|string|max:5',
+                    'profession' => 'nullable|string|max:100',
+                    'handicap' => 'required' ,
+                    'tuteur_fullname' =>  'required|string|max:50',
                 ]);
 
                 $age = Carbon::parse($request->birth_date)->age;
-                $ageCat = $age <= 12 ? 1 : ($age <= 17 ? 2 : ($age <= 59 ? 3 : 4));
+                $ageCat = $age <= 12 ? 1 : ($age <= 17 ? 2 : ($age <= 100 ? 3 : 4));
 
                 if ($type === 'club' || $type === 'company') {
                     Person::create(array_merge($validated, [
@@ -126,6 +129,20 @@ $person = Person::where('user_id', $user->id)->orderByDesc('id')->firstOrFail();
 
                 $person = Person::where('user_id', $user->id)->orderByDesc('id')->first();
                 $person->update($validated);
+                
+                
+                Dossier::updateOrCreate(
+    ['person_id' => $person->id],
+    [
+        'etat'        => 'pending',
+        
+        'owner_type'  => $type,
+        'note_admin'  => '📌 تم رفع الوثائق وجاري التحقق منها',
+    ]
+);
+                
+                
+                
                  $dossier = Dossier::where('person_id', $person->id)->first();
              //   return redirect()->route('profile.step', 4);
 
@@ -162,7 +179,7 @@ case 4:
     };
 
     // ================== Validation ديناميكي ==================
-    $rules = [
+   /* $rules = [
         // للجميع
         'medical_certificate' => $req(
             'medical_certificate',
@@ -204,9 +221,32 @@ case 4:
                 'file|mimes:pdf,jpg,png|max:4096'
             ),
         ];
-    }
+    }*/
+    $rules = [
+    'medical_certificate' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:4096',
+    'engagement'          => 'nullable|file|mimes:pdf,jpg,png|max:4096',
+    'photo'               => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+];
 
-    $request->validate($rules);
+if ($isMinor) {
+    $rules['birth_certificate'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:4096';
+    $rules['parental_authorization'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:4096';
+    $rules['guardian_id_card'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:4096';
+} else {
+    $rules['national_id_card'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:4096';
+}
+    
+    $messages = [
+    'photo.max' => '❌ حجم الصورة كبير جدًا. الحد الأقصى المسموح به هو 2 ميغابايت.',
+    'photo.mimes' => '❌ يجب أن تكون الصورة بصيغة JPG أو JPEG أو PNG فقط.',
+    'photo.image' => '❌ الملف المرفوع ليس صورة صالحة.',
+
+    'medical_certificate.max' => '❌ شهادة طبية: الحد الأقصى للملف هو 4 ميغابايت.',
+    'engagement.max' => '❌ التعهد: الحد الأقصى للملف هو 4 ميغابايت.',
+];
+
+//dd($_FILES);
+    $request->validate($rules, $messages);
 
     // ================== تحديد مسار التخزين ==================
     if (app()->environment('local')) {
@@ -273,15 +313,22 @@ case 4:
     $person->save();
 
     // ================== حفظ dossier ==================
-    Dossier::updateOrCreate(
-        ['person_id' => $person->id],
-        [
-            'etat'        => 'pending',
-            'attachments' => json_encode($attachments, JSON_UNESCAPED_UNICODE),
-            'owner_type'  => $type,
-            'note_admin'  => '📌 تم رفع الوثائق وجاري التحقق منها',
-        ]
-    );
+$existingDossier = Dossier::where('person_id', $person->id)->first();
+
+$newEtat = ($existingDossier && $existingDossier->etat === 'approved')
+    ? 'approved'
+    : 'pending';
+
+Dossier::updateOrCreate(
+    ['person_id' => $person->id],
+    [
+        'etat'        => $newEtat,
+        'attachments' => json_encode($attachments, JSON_UNESCAPED_UNICODE),
+        'owner_type'  => $type,
+        'note_admin'  => '📌 تم رفع الوثائق وجاري التحقق منها',
+    ]
+);
+
 
     // ================== التوجيه النهائي ==================
     $route = match ($user->type) {

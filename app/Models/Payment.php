@@ -6,13 +6,49 @@ use Illuminate\Database\Eloquent\Model;
 
 class Payment extends Model
 {
+    // اسم الجدول (اختياري إذا Laravel يستنتجه تلقائيًا)
+    protected $table = 'payments';
+
+    /**
+     * الحقول القابلة للـ mass assignment
+     */
     protected $fillable = [
-        'reservation_id','amount','methode','transaction_ref',
-        'payment_status','paid_at'
+        'order_id',
+        'amount',
+        'status',
+        'payload','datetimesatim','updated_at'
     ];
 
-    public function reservation()
+    /**
+     * Casts
+     */
+    protected $casts = [
+        'payload' => 'array',
+        'amount'  => 'decimal:2',
+    ];
+
+    /**
+     * حالات الدفع (اختياري – للوضوح)
+     */
+    public const STATUS_PENDING = 'pending';
+    public const STATUS_SUCCESS = 'success';
+    public const STATUS_FAILED  = 'failed';
+
+    /**
+     * Scopes مفيدة
+     */
+    public function scopeSuccess($query)
     {
-        return $this->belongsTo(Reservation::class);
+        return $query->where('status', self::STATUS_SUCCESS);
+    }
+
+    public function scopePending($query)
+    {
+        return $query->where('status', self::STATUS_PENDING);
+    }
+
+    public function scopeFailed($query)
+    {
+        return $query->where('status', self::STATUS_FAILED);
     }
 }

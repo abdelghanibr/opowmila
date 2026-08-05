@@ -14,7 +14,7 @@
     {{-- Search --}}
     <input type="text"
            id="newsSearch"
-           class="form-control mb-4"
+           class="form-control js-date-fr mb-4"
            placeholder="🔍 ابحث عن خبر...">
 
     {{-- Cards --}}

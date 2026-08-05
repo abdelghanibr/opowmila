@@ -4,6 +4,9 @@
 <div class="container py-4" style="direction:rtl;text-align:right;max-width:1000px">
 
 <h3 class="fw-bold mb-4">✏️ تعديل ملف النادي</h3>
+<div class="alert alert-info py-2 small">
+    📎 يُرجى التأكد من أن حجم كل ملف مرفق لا يتجاوز <strong>5 ميغابايت (5MB)</strong>.
+</div>
 
 {{-- ================= FORM ================= --}}
 <form id="dossierForm"

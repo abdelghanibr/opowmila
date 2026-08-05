@@ -3,11 +3,11 @@
 @section('content')
 <div class="container py-4" style="direction: rtl; text-align: right;">
 
-    <h3 class="mb-4 fw-bold">🎯 الأنشطة الرياضية</h3>
+    <h3 class="mb-4 fw-bold">🎯 التخصصات الرياضية</h3>
 
     <div class="mb-3 text-end">
         <a href="{{ route('admin.activities.create') }}" class="btn btn-primary">
-            ➕ إضافة نشاط
+            ➕ إضافة تخصص
         </a>
     </div>
 
@@ -17,8 +17,8 @@
                 <tr>
                     <th>#</th>
                     <th>الرمز</th>
-                    <th>النشاط</th>
-                    <th>نوع النشاط</th>
+                    <th>التخصص</th> 
+                     <th>نوع الرياضة</th>
                     <th>اللون</th>
                       <th>الحالة</th>
                     <th>إجراءات</th>

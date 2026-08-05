@@ -30,6 +30,11 @@
                     <th>رقم الإعتماد</th>
                     <th>تاريخ نهاية الإعتماد</th>
                     <th>الحالة</th>
+                
+                   <th>تاريخ التسجيل</th>
+               
+                         <th>تاريخ الموافقة</th>
+                
                     <th>المرفقات</th>
                     <th>ملاحظة المسؤول</th>
                     <th>إجراءات</th>
@@ -60,8 +65,8 @@
                     <td class="fw-semibold">{{ $c->nom }}</td>
                     <td>{{ $c->numero_agrement }}</td>
                     <td>{{ $c->date_expiration }}</td>
-
-                    {{-- الحالة --}}
+                   
+                          {{-- الحالة --}}
                     <td>
                         <span class="etat d-none">{{ $c->etat }}</span>
 
@@ -73,6 +78,28 @@
                             <span class="badge bg-danger">❌ مرفوض</span>
                         @endif
                     </td>
+                   
+                     <td>{{ $c->created_at }}</td>
+                    <td>
+@if($c->validated_at) 
+    <small class="text-muted">
+        @if($c->etat === 'approved') 
+            ✔️ <strong>مقبول</strong>
+        @elseif($c->etat === 'rejected') 
+            ❌ <strong>مرفوض</strong>
+        @else
+            🕒 <strong>قيد المعالجة</strong>
+        @endif
+        <br>
+        بتاريخ {{ $c->validated_at}} 
+        <br>
+        بواسطة {{ $c->validator->name ?? '—' }} 
+    </small>
+@else
+    <span class="badge bg-secondary">لم يُراجع بعد</span>
+@endif
+</td>
+             
 
                     {{-- المرفقات --}}
                     <td class="text-start">
@@ -124,6 +151,10 @@
                         @else
                             —
                         @endif
+  <a href="{{ route('persons.byOwner', $c->user_id) }}" class="btn btn-primary btn-sm">
+    👥 عرض  رياضيين النادي
+</a>
+
                     </td>
                 </tr>
 
@@ -207,6 +238,16 @@ table thead th {
 }
 </style>
 @endpush
+
+
+
+
+
+
+
 @push('js')
 @include('admin.partials.datatable-script', ['tableId' => '#clubsTable'])
+
+
+
 @endpush

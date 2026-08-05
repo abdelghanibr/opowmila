@@ -4,7 +4,7 @@
 
 <div class="container py-4" style="direction: rtl; text-align:right">
 
-    <h3 class="fw-bold mb-4">📊 السعات حسب المركّب والنشاط</h3>
+ <h3 class="fw-bold mb-4">📊 طاقة الإستيعاب حسب المنشأة و النشاط</h3>
 
     @if(session('success'))
         <div class="alert alert-success text-center fw-bold">
@@ -13,7 +13,7 @@
     @endif
 
     <a href="{{ route('admin.capacities.create') }}" class="btn btn-primary mb-3">
-        ➕ إضافة سعة جديدة
+           ➕ إضافة طاقة استيعاب جديدة
     </a>
 
     <div class="table-responsive">
@@ -21,10 +21,10 @@
             <thead class="table-dark">
                 <tr>
                     <th>#</th>
-                    <th>المركّب</th>
+                         <th>المنشأة</th>
                     <th>النشاط</th>
                   
-                    <th>السعة</th>
+                       <th>طاقة الإستيعاب</th>
                     <th style="min-width: 130px">إجراءات</th>
                 </tr>
             </thead>

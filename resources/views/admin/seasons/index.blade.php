@@ -4,9 +4,9 @@
 <div class="container">
 
     <div class="d-flex justify-content-between mb-4">
-        <h3 class="fw-bold">📆 المواسم</h3>
+             <h3 class="fw-bold">📆 رزنامة التسجيل</h3>>
         <a href="{{ route('seasons.create') }}" class="btn btn-success">
-            ➕ إضافة موسم
+            ➕ إضافة
         </a>
     </div>
 

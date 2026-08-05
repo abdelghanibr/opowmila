@@ -3,13 +3,13 @@
 @section('content')
 <div class="container" style="direction: rtl">
 
-<h4 class="fw-bold mb-3">➕ إضافة صنف نشاط</h4>
+ <h4 class="fw-bold mb-3">➕ إضافة نوع رياضة</h4>
 
 <form method="POST" action="{{ route('activity-categories.store') }}">
 @csrf
 
 <div class="mb-3">
-    <label class="fw-bold">اسم الصنف</label>
+    <label class="fw-bold">اسم النوع</label>
     <input name="name" class="form-control" required>
 </div>
 

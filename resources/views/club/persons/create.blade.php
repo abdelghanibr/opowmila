@@ -54,10 +54,20 @@
                     {{-- تاريخ الميلاد --}}
                     <div class="col-md-6">
                         <label class="form-label fw-bold">تاريخ الميلاد</label>
-                        <input type="date" name="birth_date"
-                               class="form-control form-control-lg rounded-3"
+                        <input type="text" name="birth_date"
+                               class="form-control js-date-fr form-control-lg rounded-3"
                                value="{{ old('birth_date') }}" required>
                     </div>
+                    
+                    {{-- رقم الإجازة --}}
+<div class="col-md-6">
+    <label class="form-label fw-bold">رقم الإجازة</label>
+    <input type="text" name="license_number"
+           class="form-control form-control-lg rounded-3"
+           value="{{ old('license_number') }}"
+           required>
+</div>
+
 
                     {{-- الجنس --}}
                     <div class="col-md-6">

@@ -4,7 +4,7 @@
 
 <div class="container py-4" style="direction: rtl; text-align:right">
 
-    <h3 class="fw-bold mb-4">➕ إضافة سعة جديدة</h3>
+    <h3 class="fw-bold mb-4">➕ إضافة طاقة استيعاب جديدة</h3>
 
     {{-- عرض الأخطاء --}}
     @if ($errors->any())
@@ -22,7 +22,7 @@
         @csrf
 
         {{-- المركب --}}
-        <label class="form-label fw-bold">🏟️ المركّب</label>
+   <label class="form-label fw-bold"> 🏟️ المنشاة</label> 
         <select name="complex_id" class="form-control mb-3" required>
             <option value="">-- اختر المركب --</option>
             @foreach($complexes as $c)
@@ -42,7 +42,7 @@
       
 
         {{-- السعة --}}
-        <label class="form-label fw-bold">👥 السعة القصوى</label>
+      <label class="form-label fw-bold">👥 طاقة الإستيعاب القصوى</label>
         <input type="number" name="capacity" class="form-control mb-4" required min="0"
                placeholder="مثال: 25">
 

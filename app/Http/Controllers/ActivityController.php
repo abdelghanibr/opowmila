@@ -18,7 +18,7 @@ class ActivityController extends Controller
     $activities = Activity::with('activityCategory')->get();
     return view('activities.index', compact('activities'));
 }*/
-public function index(Request $request)
+/*/public function index(Request $request)
 {
     $query = Activity::query();
 
@@ -38,7 +38,34 @@ public function index(Request $request)
     $categories = ActivityCategory::orderBy('name')->get();
 
     return view('activities.index', compact('activities', 'categories'));
+}*/
+public function index(Request $request)
+{
+    $userComplexId = auth()->user()->complex_id;
+
+    // نبدأ فقط بالأنشطة المربوطة بالمجمع الخاص بالمستخدم
+    $query = Activity::whereHas('complexActivities', function ($q) use ($userComplexId) {
+        $q->where('complex_id', $userComplexId);
+    });
+
+    // 🔍 البحث
+    if ($request->filled('search')) {
+        $query->where('title', 'like', '%' . $request->search . '%');
+    }
+
+    // 🧩 الفلترة حسب الفئة
+    if ($request->filled('category_id')) {
+        $query->where('activity_category_id', (int)$request->category_id);
+    }
+
+    $activities = $query->latest()->get();
+
+    // 🧩 جميع الفئات
+    $categories = ActivityCategory::orderBy('name')->get();
+
+    return view('activities.index', compact('activities', 'categories'));
 }
+
     /**
      * صفحة إضافة نشاط
      */
@@ -124,6 +151,18 @@ public function create()
 
         return back()->with('success', 'تم تسجيلك بنجاح وهو قيد الدراسة');
     }
+public function select(Request $request)
+{
+    $request->validate([
+        'activity_id' => 'required|integer|exists:activities,id',
+    ]);
+
+    // حفظ النشاط في الـ Session
+    session(['activity_id' => $request->activity_id]);
+
+    // التوجيه إلى صفحة الحجز (كما كنت تفعل سابقاً)
+    return redirect()->route('reservation.form', auth()->user()->complex_id);
+}
 
     /**
      * عرض أنشطة المستخدم

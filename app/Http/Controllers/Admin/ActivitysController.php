@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Activity;
 use Illuminate\Http\Request;
  use App\Models\ActivityCategory;
+ use Illuminate\Support\Facades\Auth;
+
 
 class ActivitysController extends Controller
 {
@@ -73,6 +75,7 @@ public function index()
         'icon' => $iconUrl,
         'activity_category_id' => $request->activity_category_id,
         'is_active' => $request->has('is_active') ? $request->is_active : 0,
+         'user_id'      => Auth::id(),
     ]);
 
     return redirect()
@@ -150,6 +153,7 @@ public function update(Request $request, $id)
         'icon' => $iconUrl, // إما القديمة أو الجديدة
         'activity_category_id' => $request->activity_category_id,
         'is_active' => $request->has('is_active') ? 1 : 0,
+         'user_id'      => Auth::id(),
     ]);
 
     return redirect()

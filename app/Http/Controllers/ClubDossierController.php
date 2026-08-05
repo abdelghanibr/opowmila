@@ -91,13 +91,17 @@ foreach ($files as $file) {
 }
 
 // تحديث
+$newEtat = $club->etat === 'approved'
+        ? 'approved'   // ✅ نحتفظ بالمصادقة
+        : 'pending';    // 🔄 يعاد للدراسة فقط إذا لم يكن مصادقًا
 
+    /* ===== Update club ===== */
+    $club->update([
+        'attachments' => json_encode($attachments),
+        'etat'        => $newEtat,
+    ]);
 
-        $club->update([
-            'attachments' => json_encode($attachments),
-            'etat' => 'pending', // يعاد للدراسة
-        ]);
-
+        
         return redirect()
             ->route('club.dossier.index')
             ->with('success', '✅ تم تحديث ملف النادي وإرساله للمراجعة');

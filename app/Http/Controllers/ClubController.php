@@ -8,11 +8,34 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request; 
 class ClubController extends Controller
 {
-    public function index()
+   /* public function index()
     {
         $clubs = Club::with('user')->orderByDesc('id')->get();
         return view('admin.clubs.index', compact('clubs'));
+    }*/
+    
+    public function index()
+{
+    $admin = auth()->user(); // المستخدم المتصل
+
+    // إذا كان للمدير مجمع معيّن → اجلب فقط الأندية التابعة له
+    if (!empty($admin->complex_id) && $admin->complex_id != 0) {
+        $clubs = Club::with('user')
+            ->whereHas('user', function ($q) use ($admin) {
+                $q->where('complex_id', $admin->complex_id);
+            })
+            ->orderByDesc('id')
+            ->get();
+    } else {
+        // إذا لا يوجد مجمع → اظهر جميع الأندية
+        $clubs = Club::with('user')
+            ->orderByDesc('id')
+            ->get();
     }
+
+    return view('admin.clubs.index', compact('clubs'));
+}
+
 
     public function approve($id)
     { 

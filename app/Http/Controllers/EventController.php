@@ -148,4 +148,18 @@ class EventController extends Controller
             ->route('events.index')
             ->with('success', 'تم تحديث الحدث بنجاح');
     }
+    
+        public function destroy(Event $event)
+    {
+        // حذف الصورة إن وجدت
+        if ($event->image && file_exists(public_path($event->image))) {
+            unlink(public_path($event->image));
+        }
+
+        $event->delete();
+
+        return redirect()
+            ->route('events.index')
+            ->with('success', 'تم حذف الحدث بنجاح');
+    }
 }

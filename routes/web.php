@@ -15,13 +15,13 @@ use App\Http\Controllers\ComplexeController;
 use App\Http\Controllers\Admin\ComplexController;
 use App\Http\Controllers\Admin\ActivitysController;
 use App\Http\Controllers\Admin\PricingsPlanController ;
-use App\Http\Controllers\Admin\capacityController ;
+use App\Http\Controllers\Admin\CapacityController ;
 use App\Http\Controllers\Admin\ScheduleController ;
 use App\Http\Controllers\Admin\AgeCategoryController;
  use App\Http\Controllers\Admin\SeasonController;
  use App\Http\Controllers\Admin\PersonsController ;
-  
-
+   use App\Http\Controllers\ChargilyPayController ; 
+use App\Http\Controllers\Api\PersonneController;
 
 use App\Http\Controllers\Auth\AdminAuthController;
 use App\Http\Controllers\Auth\ClubAuthController;
@@ -43,25 +43,114 @@ use App\Http\Controllers\HomeController;
 
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\EventController;
+use App\Http\Controllers\Admin\SeatTypeController;
+use App\Http\Controllers\Admin\ComplexSeatController;
+use App\Http\Controllers\Admin\TeamController;
+use App\Http\Controllers\Admin\MatchController;
+use App\Http\Controllers\Admin\TicketController;
+use App\Http\Controllers\Admin\DeviceController;
+
+use App\Http\Controllers\Api\RemotePersonController;
+
+use App\Http\Controllers\PoolClosureController;
+
+
+
+use App\Http\Controllers\Admin\PersonAssuranceController;
+Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/assurances', [PersonAssuranceController::class, 'index'])->name('assurances.index');
+    Route::get('/assurances/data', [PersonAssuranceController::class, 'data'])->name('assurances.data');
+    Route::get('/assurances/candidates-data', [PersonAssuranceController::class, 'candidatesData'])->name('assurances.candidates-data');
+    Route::post('/assurances/store-selected', [PersonAssuranceController::class, 'storeSelected'])->name('assurances.store-selected');
+    Route::post('/assurances/bulk-assure', [PersonAssuranceController::class, 'bulkAssure'])->name('assurances.bulk-assure');
+    Route::post('/assurances/print-selected', [PersonAssuranceController::class, 'printSelected'])->name('assurances.print-selected');
+});
+
+Route::get(
+    '/api/complex/{complex}/persons',
+    [RemotePersonController::class, 'index']
+)->middleware('verify.complex.sig');
+
+
+
+Route::view('/legal/terms', 'legal.terms')->name('legal.terms');
+Route::view('/legal/privacy', 'legal.privacy')->name('legal.privacy');
+
+Route::post('/payment/initiate', [PaymentController::class, 'initiate'])
+    ->name('payment.initiate');
+
+Route::post('/payment/callback', [PaymentController::class, 'callback'])
+    ->name('payment.callback');
+
+/*
+ | Guiddini / SATIM redirect (GET)
+ | يحتوي ?order_number=XXXX
+ */
+Route::get('/payment/return', [PaymentController::class, 'verify'])
+    ->name('payment.verify');
+
+/*
+ | صفحة النتيجة النهائية
+ */
+Route::get('/payment/result', function () {
+    return view('payments.result');
+})->name('payment.result');
+
+
+Route::get('/payment/receipt/{orderId}', [PaymentController::class, 'downloadReceipt'])
+    ->name('payment.receipt');
+
+Route::post('/payment/receipt/email/{orderId}', [PaymentController::class, 'sendReceiptEmail'])
+    ->name('payment.receipt.email');
+
+//Route::get('
+//Route::get('/payment/result', [PaymentController::class, 'handleReturn']);
 
 /*
 |--------------------------------------------------------------------------
 | PAGE D'ACCUEIL PUBLIQUE (SANS AUTH)
 |--------------------------------------------------------------------------
 */
-
-
-
+Route::get('/personnes', [PersonneController::class, 'index']);
 // صفحة تأكيد إعادة تعيين كلمة المرور
 Route::get('/home', [HomeController::class, 'index'])->name('home');
 
-/*Route::get('/', function () {
-    return view('welcome');
-})->name('home');*/
+//Route::get('/', function () {
+  //  return view('welcome');
+//})->name('home');
+Route::get('/terms-edahabia', function () {
+    return view('pages.edahabia-terms');
+})->name('terms.edahabia');
+
 Route::get('/', [HomeController::class, 'welcome'])->name('welcome');
 
+Route::get('/complexes/filter/{type}', [HomeController::class, 'filterAjax'])
+     ->name('complexes.filter');
 
-Route::get('/events/{id}', [EventController::class, 'show'])
+ //  Route::get('/complexes', [ComplexeController::class, 'index'])
+   //     ->name('complexes.index');
+
+// صفحة تأكيد إعادة تعيين كلمة المرور
+//Route::get('/home', [HomeController::class, 'index'])->name('home');
+
+/*Route::get('/', function () {
+    return view('welcome');
+})->name('home');
+*/
+Route::get('/tickets/select-seat/{id}', [MatchController::class, 'selectSeat'])
+    ->name('tickets.select-seat');
+
+Route::post('/tickets/confirm', [TicketController::class, 'confirm'])
+    ->name('tickets.confirm');
+
+
+Route::get('/matches/public', [MatchController::class, 'publicMatches'])
+     ->name('matches.public');
+
+Route::get('/tickets/reserve/{id}', [TicketController::class, 'reserve'])
+     ->name('tickets.reserve');
+
+  Route::get('/events/{id}', [EventController::class, 'show'])
     ->whereNumber('id')
     ->name('events.show');
 
@@ -74,10 +163,15 @@ Route::get('/events/{id}', [EventController::class, 'show'])
 | AUTHENTIFICATION
 |--------------------------------------------------------------------------
 */
+
+  
+
+
+
 // Admin
 Route::get('/admin/login', [AdminAuthController::class, 'showLogin'])->name('admin.login');
 Route::post('/admin/login', [AdminAuthController::class, 'login'])->name('admin.login.post');
-Route::get('/admin/dashboard', fn()=>view('admin.dashboard'))->middleware('auth')->name('admin.dashboard');
+
 
 // Club
 Route::get('/club/login', [ClubAuthController::class, 'showLogin'])->name('club.login');
@@ -157,6 +251,29 @@ Route::get('/person/profile/edit', [RegisterController::class, 'edit'])->name('p
 
  Route::put('/person/profile/update', [RegisterController::class, 'update'])
         ->name('person.profile.update');
+
+Route::get('/dossier/{dossier}/print', 
+    [DossierController::class, 'print'])
+    ->name('dossier.print');
+    
+ 
+     
+Route::get('/forms/formulaire/{id}/download', [FormController::class, 'downloadFormulaire'])
+    ->name('forms.formulaire.download');
+
+Route::get('/dossiers/{id}/autorisation-parentale/download', [DossierController::class, 'downloadAutorisationParentale'])
+    ->name('dossiers.autorisation-parentale.download');
+ 
+ 
+    
+  Route::get('/forms/formulaire/{dossier}', [DossierController::class, 'showFormulaire'])
+    ->name('forms.formulaire.view');  
+   
+  Route::get('/dossiers/{dossier}/autorisation-parentale', [DossierController::class, 'autorisationParentale'])
+    ->name('dossiers.autorisation-parentale'); 
+    
+
+
 });
 
 // ⭐ Dashboard Club
@@ -199,7 +316,8 @@ Route::middleware(['auth','club'])->group(function ()
         ->name('club.dossier.update');
 
  
-
+  //  Route::get('/reservations/select-type', [ReservationController::class, 'selectType'])
+     //   ->name('reservation.select_type');
 });
 
 // ⭐ Dashboard Entreprise
@@ -247,7 +365,8 @@ Route::middleware(['auth','entreprise'])->group(function () {
 
 // ⭐ Dashboard Admin
 
-
+Route::get('/persons/by-owner/{id}', [PersonController::class, 'byOwner']
+)->name('persons.byOwner');    
 
 
 
@@ -255,11 +374,106 @@ Route::middleware(['auth','admin'])->group(function () {
 
 
 
+Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+
+    Route::get('/pool-closures', [PoolClosureController::class, 'index'])
+        ->name('pool-closures.index');
+
+    Route::get('/pool-closures/create', [PoolClosureController::class, 'create'])
+        ->name('pool-closures.create');
+
+    Route::post('/pool-closures', [PoolClosureController::class, 'store'])
+        ->name('pool-closures.store');
+
+    Route::get('/pool-closures/{poolClosure}', [PoolClosureController::class, 'show'])
+        ->name('pool-closures.show');
+
+    Route::get('/pool-closures/{poolClosure}/edit', [PoolClosureController::class, 'edit'])
+        ->name('pool-closures.edit');
+
+    Route::put('/pool-closures/{poolClosure}', [PoolClosureController::class, 'update'])
+        ->name('pool-closures.update');
+
+    Route::delete('/pool-closures/{poolClosure}', [PoolClosureController::class, 'destroy'])
+        ->name('pool-closures.destroy');
+
+    Route::post('/pool-closures/{poolClosure}/apply', [PoolClosureController::class, 'apply'])
+        ->name('pool-closures.apply');
+});
+
+
+
+
+
+
+
+
+
+
+
+
+Route::post('/reservations/{reservation}/toggle-payment', 
+    [ReservationController::class, 'togglePayment'])
+    ->name('reservations.togglePayment');
+
+
+
+     Route::resource('devices', DeviceController::class);
+
+     Route::get('/devices/{device}/connect', [DeviceController::class, 'connect'])
+     ->name('devices.connect');    
+Route::get(
+    'devices/{device}/zk-users',
+    [DeviceController::class, 'fetchZkAttendance']
+)->name('devices.zkUsers');
+
+Route::post(
+    'devices/{device}/import-selected-users',
+    [DeviceController::class, 'importSelectedUsers']
+)->name('devices.importSelectedUsers');
+
+
+
+Route::resource('seat_types', SeatTypeController::class);
+
+
+        // ---------------------------
+        //    COMPLEX SEATS CRUD
+        // ---------------------------
+        Route::resource('complex_seats', ComplexSeatController::class);
+
+
+        // ---------------------------
+        //         TEAMS CRUD
+        // ---------------------------
+        Route::resource('teams', TeamController::class);
+
+
+        // ---------------------------
+        //         MATCHES CRUD
+        // ---------------------------
+        Route::resource('matches', MatchController::class);
+
+
+        // ---------------------------
+        //         TICKETS CRUD
+        // ---------------------------
+        Route::resource('tickets', TicketController::class)->only(['index', 'destroy']);
+
+
+Route::get('/print/persons', [PersonController::class, 'printSelected'])->name('persons.print');
+Route::post('/update-assurance', [PersonController::class, 'updateAssurance']);
+
+
+
+Route::get('/admin/dashboard_complex/{id}', [App\Http\Controllers\AdminController::class, 'dashboardComplex'])
+    ->name('admin.dashboard_complex');
 
 
 Route::resource('news', NewsController::class)->except(['show']);;
 Route::resource('events', EventController::class)->except(['show']);;
     
+
 
 Route::resource('persons', PersonsController::class);
 Route::resource('activity-categories',ActivityCategoryController::class );
@@ -406,6 +620,14 @@ Route::resource('/admin/age-categories', AgeCategoryController::class);
 */
 Route::middleware('auth')->group(function () {
 
+// ChargilyPay Routes
+
+Route::post('chargilypay/redirect', [ChargilyPayController::class, "redirect"])->name("chargilypay.redirect");
+
+Route::get('chargilypay/back', [ChargilyPayController::class, "back"])->name("chargilypay.back");
+Route::post('chargilypay/webhook', [ChargilyPayController::class, "webhook"])->name("chargilypay.webhook_endpoint");
+// Profile Routes
+
 Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
 Route::get('/profile/new', [ProfileController::class, 'newPerson'])
     ->name('profile.new');
@@ -523,7 +745,7 @@ Route::get('/reservations/{reservation}/print',
 
 
 
-Route::get('/my-activities', function () {
+   Route::get('/my-activities', function () {
         return view('activities.my');
     })->name('my.activities');
     // Étape 1 - Choisir type
@@ -533,6 +755,13 @@ Route::get('/my-activities', function () {
     // Étape 2 - Liste des complexes selon type
     Route::get('/reservations/list/{type}', [ReservationController::class, 'listByType'])
         ->name('reservation.list_by_type');
+
+Route::post('/activities/select', function () {
+    session(['activity_id' => request('activity_id')]);
+    return response()->json(['success' => true]);
+})->name('activities.select');
+
+
 
     // Étape 3 - Formulaire
     Route::get('/reservations/form/{id}', [ReservationController::class, 'form'])

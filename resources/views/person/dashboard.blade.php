@@ -105,12 +105,19 @@
 
 <div class="container py-4" style="direction: rtl; text-align:right">
     
-    <div class="dash-box mb-4" style="background:#1b5e20; color:white;">
-        <h3 class="text-center mb-2">👋 أهلاً {{ Auth::user()->name }}</h3>
-        <p class="text-center">
-            مرحباً بك في منصة النشاطات الرياضية لولاية ميلة
-        </p>
-    </div>
+   <div class="dash-box mb-4" style="background:#1b5e20; color:white;">
+    <h3 class="text-center mb-2">
+        👋 أهلاً {{ Auth::user()->name }}
+    </h3>
+
+    <p class="text-center mb-1">
+        مرحباً بك في منصة النشاطات الرياضية لولاية ميلة
+    </p>
+
+    <p class="text-center" style="font-size:18px; font-weight:bold;">
+        📍 المنشأة: {{ Auth::user()->complex->nom ?? '—' }} 
+    </p>
+</div>
 
     <div class="row g-3">
         <div class="col-md-4">
@@ -189,7 +196,13 @@
         <div class="alert alert-success status-box">
             ✔ تم قبول ملفك! 🎉 يمكنك الآن الاستفادة من الخدمات
         </div>
-
+   <div class="mt-3 text-center">
+            <a href="{{ route('dossier.print', $dossier->id) }}"
+               target="_blank"
+               class="btn btn-sm btn-outline-dark">
+               🖨️ طباعة استمارة التسجيل
+            </a>
+        </div>
     {{-- 🔴 حالة الرفض --}}
     @elseif($dossier->etat == 'rejected')
         <div class="alert alert-danger status-box">
@@ -209,19 +222,29 @@
         </div>
 
     {{-- 🕒 حالة قيد الدراسة --}}
-    @else
-        <div class="alert alert-warning status-box">
-            ⏳ ملفك قيد الدراسة حالياً 🔔
+@else
+    <div class="alert alert-warning status-box">
+        ⏳ ملفك قيد الدراسة حالياً 🔔
 
-            @if($hasNote)
-                <hr>
-                <strong>📝 ملاحظة الإدارة:</strong>
-                <div class="mt-1 small">
-                    {{ $dossier->note_admin }}
-                </div>
-            @endif
+        @if($hasNote)
+            <hr>
+            <strong>📝 ملاحظة الإدارة:</strong>
+            <div class="mt-1 small">
+                {{ $dossier->note_admin }}
+            </div>
+        @endif
+
+        {{-- 🖨 زر طباعة fiche inscription --}}
+        <div class="mt-3 text-center">
+            <a href="{{ route('dossier.print', $dossier->id) }}"
+               target="_blank"
+               class="btn btn-sm btn-outline-dark">
+               🖨️ طباعة استمارة التسجيل
+            </a>
         </div>
-    @endif
+    </div>
+@endif
+
 
 @else
     {{-- لا يوجد ملف بعد --}}
@@ -237,6 +260,17 @@
 
 </div>
 
+@php
+    $dossierId = $dossier?->id;
+
+    $formulaireUrl = $dossierId
+        ? route('forms.formulaire.view', $dossierId)
+        : null;
+
+    $autorisationParentaleUrl = $dossierId
+        ? route('dossiers.autorisation-parentale', $dossierId)
+        : null;
+@endphp
 
 <div class="dash-box mt-4">
     <h4 class="mb-3">📥 تحميل النماذج الرسمية</h4>
@@ -247,38 +281,123 @@
 
     <div class="row g-3">
 
-        {{-- 📄 نموذج التعهد  --}}
+        {{-- 📄 نموذج التعهّد --}}
         <div class="col-md-6">
             <div class="dash-card">
                 <h6>📄 نموذج التعهّد</h6>
                 <p class="text-muted small">
                     خاص بالمشاركين البالغين
                 </p>
-                <a href="{{ asset('forms/engagement.pdf') }}"
-                   target="_blank"
-                   class="btn btn-outline-success btn-sm">
-                    ⬇ تحميل النموذج
-                </a>
+
+                @if($formulaireUrl)
+                    <button type="button"
+                            class="btn btn-outline-success btn-sm open-pdf-btn"
+                            data-pdf="{{ $formulaireUrl }}"
+                            data-title="نموذج التعهّد">
+                        👁 فتح النموذج
+                    </button>
+
+                    <a href="{{ $formulaireUrl }}"
+                       target="_blank"
+                       class="btn btn-success btn-sm">
+                        ⬇ تحميل النموذج
+                    </a>
+                @else
+                    <div class="alert alert-warning mt-2 mb-0 py-2">
+                            قم بجز معلوماتك الشخصية للتمكن من تحميل الوثائق جاهزة
+                    </div>
+                @endif
             </div>
         </div>
 
-        {{-- 📄 التصريح الأبوي (للقُصّر) --}}
+        {{-- 📄 التصريح الأبوي --}}
         <div class="col-md-6">
             <div class="dash-card">
                 <h6>📄 نموذج التصريح الأبوي</h6>
                 <p class="text-muted small">
                     خاص بالمشاركين القُصّر
                 </p>
-                <a href="{{ asset('forms/parental_authorization.pdf') }}"
-                   target="_blank"
-                   class="btn btn-outline-success btn-sm">
-                    ⬇ تحميل النموذج
-                </a>
+
+                @if($autorisationParentaleUrl)
+                    <button type="button"
+                            class="btn btn-outline-success btn-sm open-pdf-btn"
+                            data-pdf="{{ $autorisationParentaleUrl }}"
+                            data-title="نموذج التصريح الأبوي">
+                        👁 فتح النموذج
+                    </button>
+
+                    <a href="{{ $autorisationParentaleUrl }}"
+                       target="_blank"
+                       class="btn btn-success btn-sm">
+                        ⬇ فتح / طباعة النموذج
+                    </a>
+                @else
+                    <div class="alert alert-warning mt-2 mb-0 py-2">
+                            قم بجز معلوماتك الشخصية للتمكن من تحميل الوثائق جاهزة
+                        </div>
+                @endif
             </div>
         </div>
 
     </div>
 </div>
+
+{{-- Modal affichage PDF / HTML --}}
+<div class="modal fade" id="pdfViewerModal" tabindex="-1" aria-labelledby="pdfViewerLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 16px; overflow: hidden;">
+            <div class="modal-header">
+                <h5 class="modal-title" id="pdfViewerLabel">عرض النموذج</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+
+            <div class="modal-body p-0">
+                <iframe id="pdfFrame"
+                        src=""
+                        width="100%"
+                        height="700"
+                        style="border: none;">
+                </iframe>
+            </div>
+
+            <div class="modal-footer">
+                <a id="pdfDownloadBtn" href="#" target="_blank" class="btn btn-success">
+                    ⬇ تحميل النموذج
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    إغلاق
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const pdfButtons = document.querySelectorAll('.open-pdf-btn');
+    const pdfFrame = document.getElementById('pdfFrame');
+    const pdfTitle = document.getElementById('pdfViewerLabel');
+    const pdfDownloadBtn = document.getElementById('pdfDownloadBtn');
+    const modalElement = document.getElementById('pdfViewerModal');
+    const pdfModal = new bootstrap.Modal(modalElement);
+
+    pdfButtons.forEach(btn => {
+        btn.addEventListener('click', function () {
+            const pdfUrl = this.getAttribute('data-pdf');
+            const title = this.getAttribute('data-title') || 'عرض النموذج';
+
+            pdfFrame.src = pdfUrl;
+            pdfTitle.textContent = title;
+            pdfDownloadBtn.href = pdfUrl;
+
+            pdfModal.show();
+        });
+    });
+
+    modalElement.addEventListener('hidden.bs.modal', function () {
+        pdfFrame.src = '';
+    });
+});
+</script>
 </div>
 
 
