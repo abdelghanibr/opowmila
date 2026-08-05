@@ -87,6 +87,13 @@
 
 <iframe id="printFrame" style="display:none;"></iframe>
 
+        @if($isChild ?? false)
+        <div class="alert alert-info rounded-4">
+            👶 <strong>ملف الطفل:</strong> وثائق الولي (التصريح الأبوي + بطاقة الولي) تُشارك تلقائيًا من حساب الوالد.
+            ارفع فقط الوثائق الخاصة بالطفل (الصورة، الشهادة الطبية، شهادة الميلاد).
+        </div>
+        @endif
+
         <div class="row g-4 g-lg-5">
 
             <!-- ================= صورة شمسية ================= -->

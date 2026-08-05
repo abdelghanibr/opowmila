@@ -65,6 +65,10 @@
         <input type="hidden" name="schedule_id" id="schedule_id">
         <input type="hidden" name="season_id" id="season_id" value="{{ $selectedSeasonId }}">
 
+        @if(auth()->user()->type === 'person' && $reservablePersons->isNotEmpty())
+            <input type="hidden" name="person_id" id="person_id" value="{{ $reservablePersons->first()->id }}">
+        @endif
+
         {{-- 🧾 معلومات الحجز --}}
         <div class="card shadow-sm rounded-4 mb-4 overflow-hidden">
             <div class="card-body p-4">
@@ -83,6 +87,26 @@
                         <div class="col-md-6">
                             <label class="fw-bold small text-muted">🎯 الفئة العمرية</label>
                             <input class="form-control bg-light" value="{{ $ageCategoryName ?? 'غير محدد' }}" readonly>
+                        </div>
+                    @endif
+
+                    @if(auth()->user()->type === 'person' && $reservablePersons->count() > 1)
+                        <div class="col-md-6">
+                            <label class="fw-bold small text-muted">👶 احجز باسم</label>
+                            <select name="person_select" id="person_select"
+                                    class="form-select @error('person_id') is-invalid @enderror">
+                                @foreach($reservablePersons as $rp)
+                                    <option value="{{ $rp->id }}"
+                                        {{ ($rp->id == ($person_id ?? ($reservablePersons->first()->id))) ? 'selected' : '' }}
+                                        {{ $rp->can_book ? '' : 'disabled' }}>
+                                        {{ $rp->firstname }} {{ $rp->lastname }}
+                                        {{ $rp->can_book ? '' : '(الملف غير مصادق عليه)' }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('person_id')
+                                <div class="text-danger small">{{ $message }}</div>
+                            @enderror
                         </div>
                     @endif
 
@@ -271,6 +295,17 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         seasonModal = new bootstrap.Modal(document.getElementById('seasonModal'));
+
+        const personSelect = document.getElementById('person_select');
+        if (personSelect) {
+            personSelect.addEventListener('change', function () {
+                document.getElementById('person_id').value = this.value;
+                // recharger la page avec le filtre de la personne choisie
+                const url = new URL(window.location.href);
+                url.searchParams.set('person_id', this.value);
+                window.location.href = url.toString();
+            });
+        }
     });
 
     function openSeasonPopup(btn) {

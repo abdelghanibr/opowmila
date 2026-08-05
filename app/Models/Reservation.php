@@ -16,6 +16,7 @@ class Reservation extends Model
     // الحقول التي يسمح بملؤها
     protected $fillable = [
         'user_id',
+        'person_id',
         'user_type',
         'season_id',
         'complex_activity_id',

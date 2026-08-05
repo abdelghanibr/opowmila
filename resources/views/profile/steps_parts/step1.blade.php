@@ -26,17 +26,21 @@
                 <div class="form-error text-danger small">{{ $message }}</div>
             @enderror
         </div>
-<div class="col-md-6 mb-3">
-    <label class="form-label">اسم الأب</label>
-    <input type="text"
-           name="tuteur_fullname"
-           class="form-control @error('tuteur_fullname') is-invalid @enderror"
-           value="{{ old('tuteur_fullname', $person->tuteur_fullname ?? '') }}">
+        @if($isChild ?? false)
+            <input type="hidden" name="tuteur_fullname" value="{{ old('tuteur_fullname', $person->tuteur_fullname ?? ($parentPerson->firstname ?? '') . ' ' . ($parentPerson->lastname ?? '')) }}">
+        @else
+        <div class="col-md-6 mb-3">
+            <label class="form-label">اسم الأب</label>
+            <input type="text"
+                   name="tuteur_fullname"
+                   class="form-control @error('tuteur_fullname') is-invalid @enderror"
+                   value="{{ old('tuteur_fullname', $person->tuteur_fullname ?? '') }}">
 
-    @error('tuteur_fullname')
-        <div class="form-error text-danger small">{{ $message }}</div>
-    @enderror
-</div>
+            @error('tuteur_fullname')
+                <div class="form-error text-danger small">{{ $message }}</div>
+            @enderror
+        </div>
+        @endif
 
         <!-- تاريخ الميلاد -->
         <div class="col-md-6 mb-3">
@@ -131,12 +135,14 @@
     </div>
 
     {{-- ملاحظة إعادة التحقق --}}
+    @if(!($isChild ?? false))
     <div class="alert alert-warning d-flex align-items-center gap-2 mt-3" style="border-radius:12px; font-size:0.9rem;">
         <i class="fa-solid fa-circle-exclamation" style="font-size:1.2rem;"></i>
         <div>
             <strong>تنبيه:</strong> بعد تعديل أي معلومات شخصية، سيتم إلغاء تأكيد حسابك الحالي وستنتظر <strong>_validation من الإدارة</strong> مرة أخرى قبل استعمال المنصة.
         </div>
     </div>
+    @endif
 
     <div class="mt-4 d-flex justify-content-between">
         <a href="{{ route('person.dashboard') }}" class="btn btn-outline-secondary px-4">

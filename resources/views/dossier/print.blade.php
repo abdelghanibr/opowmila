@@ -155,18 +155,23 @@
   
 
         {{-- COMPLEX --}}
+        @php
+            $complexOf = $dossier->person?->user?->complex
+                ?? $dossier->person?->parent?->user?->complex
+                ?? null;
+        @endphp
         <div class="mb-3">
               <div class="section-title">المنشأة الرياضية</div>
 
             <table class="table table-sm info-table mb-0">
                 <tr>
                    <th>اسم المنشأة</th>
-                    <td>{{ $dossier->person?->user?->complex?->nom ?? '—' }}</td>
+                    <td>{{ $complexOf->nom ?? '—' }}</td>
 
                 </tr>
                 <tr>
                     <th>العنوان</th>
-                   <td>{{ $dossier->person?->user?->complex?->adresse ?? '—' }}</td>
+                   <td>{{ $complexOf->adresse ?? '—' }}</td>
                 </tr>
             </table>
         </div>

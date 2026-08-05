@@ -185,10 +185,16 @@ public function destroy($id)
 {
     $person = Person::findOrFail($id);
 
-    $linkedUser = User::find($person->user_id);
+    $linkedUser = $person->user_id ? User::find($person->user_id) : null;
 
-    // récupérer les dossiers liés à la personne
-    $dossiers = Dossier::where('person_id', $person->id)->get();
+    // 👶 si c'est un parent, supprimer aussi ses enfants (orignaux)
+    $relatedPersons = collect([$person])
+        ->merge(Person::where('parent_id', $person->id)->get());
+
+    $personsIds = $relatedPersons->pluck('id');
+
+    // récupérer les dossiers liés aux personnes
+    $dossiers = Dossier::whereIn('person_id', $personsIds)->get();
 
     // préparer la liste des fichiers à supprimer
     $filesToDelete = [];
@@ -209,13 +215,19 @@ public function destroy($id)
         }
     }
 
-    DB::transaction(function () use ($dossiers, $person, $linkedUser) {
+    DB::transaction(function () use ($dossiers, $relatedPersons, $linkedUser, $personsIds) {
         foreach ($dossiers as $dossier) {
             $dossier->delete();
         }
 
-        $person->delete();
+        // 🗑️ supprimer les réservations des personnes concernées
+        \App\Models\Reservation::whereIn('person_id', $personsIds)->delete();
 
+        foreach ($relatedPersons as $p) {
+            $p->delete();
+        }
+
+        // 🔐 ne supprimer le compte utilisateur que s'il appartient au parent (pas aux enfants)
         if ($linkedUser) {
             $linkedUser->delete();
         }

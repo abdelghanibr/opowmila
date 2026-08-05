@@ -28,11 +28,13 @@
             <input type="password" name="password" class="form-control"
                    placeholder="••••••" required>
 
-            <!-- Captcha -->
+            <!-- Captcha (uniquement hors local) -->
+            @if (!app()->environment('local'))
             <label class="mt-3">التحقق</label>
             <div class="captcha-wrapper">
                 <div class="g-recaptcha" data-sitekey="{{ env('RECAPTCHA_SITE_KEY') }}"></div>
             </div>
+            @endif
 
             @if ($errors->any())
                 <div class="alert alert-danger py-2 mt-3">
@@ -55,7 +57,9 @@
     </div>
 </div>
 
+@if (!app()->environment('local'))
 <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+@endif
 
 {{-- CSS داخل نفس الـ Blade --}}
 <style>

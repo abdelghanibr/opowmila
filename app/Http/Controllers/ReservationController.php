@@ -369,14 +369,51 @@ public function form($complexId)
     $person = null;
     $ageCategoryId = null;
     $genderCode = null;
+    $reservablePersons = collect();
 
     if ($user->type === 'person') {
-        $person = Person::with('ageCategory')
+
+        // 👤 le parent (compte) + 👶 ses enfants
+        $parentPerson = Person::with('ageCategory', 'dossier')
             ->where('user_id', $user->id)
+            ->whereNull('parent_id')
+            ->orderByDesc('id')
             ->first();
+
+        $person = $parentPerson;
+
+        // 🎯 si une personne précise est demandée (enfant), on filtre pour elle
+        $requestedPersonId = request('person_id');
+        if ($requestedPersonId && $parentPerson) {
+            $requested = Person::where('id', $requestedPersonId)
+                ->where(function ($q) use ($user, $parentPerson) {
+                    $q->where('user_id', $user->id)
+                      ->orWhere('parent_id', $parentPerson->id);
+                })
+                ->first();
+
+            if ($requested) {
+                $person = $requested;
+            }
+        }
 
         $ageCategoryId = $person?->age_category_id;
         $genderCode    = $this->normalizeGender($person?->gender);
+
+        if ($parentPerson) {
+            $reservablePersons = $parentPerson->children()
+                ->with('ageCategory', 'dossier')
+                ->orderByDesc('id')
+                ->get()
+                ->prepend($parentPerson);
+        }
+
+        // marquer les personnes dont le dossier est approuvé
+        $reservablePersons = $reservablePersons->map(function ($p) {
+            $d = $p->dossier;
+            $p->can_book = $d && $d->etat === 'approved';
+            return $p;
+        });
     }
 
     /* =============================
@@ -524,7 +561,7 @@ $seasons = Season::where(function ($query) use ($today, $limitDate) {
     }
 //dd( $reserved);
     /* =============================
-       7️⃣ التحقق من الدوسيي
+        7️⃣ التحقق من الدوسيي
     ============================== */
     if (in_array($user->type, ['club', 'company'])) {
 
@@ -543,21 +580,18 @@ $seasons = Season::where(function ($query) use ($today, $limitDate) {
         }
 
     } else {
-        if ($person) {
-            $dossier = Dossier::where('owner_type', 'person')
-                ->where('person_id', $person->id)
-                ->first();
+        // 👤 person : au moins une personne (parent ou enfant) doit avoir un dossier approuvé
+        $hasApproved = $reservablePersons->contains(fn($p) => $p->can_book);
 
-            if (!$dossier || $dossier->etat !== 'approved') {
-                return view('errors.error-dossier', [
-                    'message' => '⚠️ ملفك غير مكتمل أو غير مصادق عليه.'
-                ]);
-            }
+        if (!$hasApproved) {
+            return view('errors.error-dossier', [
+                'message' => '⚠️ لا يمكنك الحجز : ملفك أو ملف أحد أبنائك غير مكتمل أو غير مصادق عليه.'
+            ]);
         }
     }
 
     /* =============================
-       8️⃣ العرض
+        8️⃣ العرض
     ============================== */
     return view('reservation.form', compact(
         'complex',
@@ -565,8 +599,9 @@ $seasons = Season::where(function ($query) use ($today, $limitDate) {
         'activity',
         'seasons',
         'selectedSeasonId',
-        'schedules'
-    ));
+        'schedules',
+        'reservablePersons'
+    ) + ['person_id' => $person?->id]);
 }
 
 public function renewStore(Request $request, Reservation $reservation)
@@ -632,10 +667,15 @@ public function renewStore(Request $request, Reservation $reservation)
     }
 
 
-$alreadyExists = Reservation::where('user_id', $user->id)
-    ->where('schedule_id', $reservation->schedule_id)
+$alreadyExists = Reservation::where('schedule_id', $reservation->schedule_id)
     ->where('season_id', $season->id)
-
+    ->where(function ($q) use ($user, $reservation) {
+        if (!empty($reservation->person_id)) {
+            $q->where('person_id', $reservation->person_id);
+        } else {
+            $q->where('user_id', $user->id);
+        }
+    })
     ->exists();
 
 if ($alreadyExists) {
@@ -681,6 +721,7 @@ public function store(Request $request)
         'complex_activity_id' => 'required|exists:complex_activity,id',
         'season_id'           => 'required|exists:seasons,id',
         'schedule_id'         => 'required|exists:schedules,id',
+        'person_id'           => 'nullable|integer|exists:persons,id',
     ], [
         'complex_activity_id.required' => '⚠ يرجى اختيار مركب ونشاط صحيح.',
         'season_id.required'           => '⚠ يرجى اختيار الموسم الرياضي.',
@@ -690,19 +731,70 @@ public function store(Request $request)
     $user = Auth::user();
 
     /* =====================================================
-       1️⃣ جلب المعطيات الأساسية
+        1️⃣ جلب المعطيات الأساسية
     ===================================================== */
     $complexActivity = ComplexActivity::findOrFail($request->complex_activity_id);
     $schedule        = Schedule::findOrFail($request->schedule_id);
     $season          = Season::findOrFail($request->season_id);
 
     /* =====================================================
-       2️⃣ منع الحجز المكرر لنفس المستخدم ونفس الجدول ونفس الموسم
+        1️⃣bis 👶 الشخص الذي يُحجز له (compte person)
     ===================================================== */
-    $alreadyExists = Reservation::where('user_id', $user->id)
-        ->where('schedule_id', $schedule->id)
-        ->where('season_id', $season->id)
-        ->exists();
+    $person = null;
+
+    if ($user->type === 'person') {
+
+        // 👤 le parent lui-même (par défaut)
+        $parentPerson = Person::where('user_id', $user->id)
+            ->whereNull('parent_id')
+            ->orderByDesc('id')
+            ->first();
+
+        if ($request->person_id) {
+
+            $person = Person::where('id', $request->person_id)
+                ->where(function ($q) use ($user, $parentPerson) {
+                    $q->where('user_id', $user->id);
+                    if ($parentPerson) {
+                        $q->orWhere('parent_id', $parentPerson->id);
+                    }
+                })
+                ->first();
+
+            if (!$person) {
+                return back()->with('error', '⚠ هذا الشخص لا يتبع حسابك.');
+            }
+        } else {
+            $person = $parentPerson;
+        }
+
+        if (!$person) {
+            return back()->with('error', '⚠ يرجى إكمال ملفك الشخصي قبل الحجز.');
+        }
+    }
+
+    /* =====================================================
+        2️⃣ منع الحجز المكرر لنفس المستخدم/الشخص ونفس الجدول ونفس الموسم
+    ===================================================== */
+    $dupQuery = Reservation::where('schedule_id', $schedule->id)
+        ->where('season_id', $season->id);
+
+    if ($person) {
+        if ($person->isChild()) {
+            $dupQuery->where('person_id', $person->id);
+        } else {
+            $dupQuery->where(function ($q) use ($user, $person) {
+                $q->where('person_id', $person->id)
+                  ->orWhere(function ($sq) use ($user) {
+                      $sq->whereNull('person_id')->where('user_id', $user->id);
+                  });
+            });
+        }
+    } else {
+        $dupQuery->where('user_id', $user->id);
+    }
+
+    $alreadyExists = $dupQuery->exists();
 
     if ($alreadyExists) {
         return back()->with(
@@ -719,29 +811,30 @@ public function store(Request $request)
     }
 
     /* =====================================================
-       4️⃣ التحقق من ملف المستخدم
+        4️⃣ التحقق من ملف المستخدم
     ===================================================== */
-    $person = $user->type === 'person'
-        ? Person::where('user_id', $user->id)->first()
-        : null;
-
-    $ageCategoryId = $person?->age_category_id;
-    $genderCode    = $this->normalizeGender($person?->gender);
+    if ($user->type === 'person') {
+        $ageCategoryId = $person?->age_category_id;
+        $genderCode    = $this->normalizeGender($person?->gender);
+    } else {
+        $ageCategoryId = null;
+        $genderCode    = null;
+    }
 
     if (!$this->scheduleMatchesUserProfile($schedule, $ageCategoryId, $genderCode)) {
         return back()->with('error', '⚠ هذا الجدول غير متاح لبياناتك الشخصية.');
     }
 
     /* =====================================================
-       5️⃣ استخراج الحصص الأسبوعية
+        5️⃣ استخراج الحصص الأسبوعية
     ===================================================== */
     $slots = $this->decodeScheduleSlots($schedule);
     $sessionsPerWeek = count($slots);
 
     /* =====================================================
-       6️⃣ منع التعارض الزمني
+        6️⃣ منع التعارض الزمني (حسب الشخص المحجوز له)
     ===================================================== */
-    $conflict = $this->checkScheduleConflict($user->id, $schedule, $season);
+    $conflict = $this->checkScheduleConflict($user->id, $person, $schedule, $season);
 
     if ($conflict) {
         return back()->with('error', '⚠ يوجد تعارض في المواعيد مع حجز آخر لديك: ' . $conflict);
@@ -823,6 +916,7 @@ public function store(Request $request)
     ===================================================== */
     $newReservation = Reservation::create([
         'user_id'             => $user->id,
+        'person_id'           => $person?->id,
         'complex_activity_id' => $complexActivity->id,
         'season_id'           => $season->id,
         'schedule_id'         => $schedule->id,
@@ -874,8 +968,15 @@ public function store(Request $request)
     // 8) حجوزات المستخدم
     public function myReservations()
     {
-        $reservations = Reservation::where('user_id', auth()->id())->get();// جلب حجوزات المستخدم الحالي
-        return view('reservation.my_reservations', compact('reservations'));// عرض صفحة الحجوزات مع تمرير الحجوزات
+        $reservations = Reservation::with('person', 'schedule')
+            ->where('user_id', auth()->id())
+            ->get();// جلب حجوزات المستخدم الحالي
+
+        $seasons = Season::whereDate('date_fin', '>=', now()->toDateString())
+            ->orderBy('date_debut')
+            ->get();
+
+        return view('reservation.my_reservations', compact('reservations', 'seasons'));// عرض صفحة الحجوزات مع تمرير الحجوزات
     }
 
 
@@ -1372,13 +1473,29 @@ private function calculateProratedFirstMonth(Carbon $startDate, float $monthlyPr
      */
    private function checkScheduleConflict(
     int $userId,
+    ?Person $person,
     Schedule $newSchedule,
     Season $newSeason
 ): ?string {
 
-    $existingReservations = Reservation::where('user_id', $userId)
-        ->whereIn('statut', ['en_attente', 'validé', 'confirmé'])
+    $existingReservations = Reservation::whereIn('statut', ['en_attente', 'validé', 'confirmé'])
         ->with('schedule')
+        ->where(function ($q) use ($userId, $person) {
+
+            if ($person && $person->isChild()) {
+                // 👶 enfant : uniquement ses propres réservations (person_id)
+                $q->where('person_id', $person->id);
+            } elseif ($person) {
+                // 👤 compte parent : ses réservations (nouvelles via person_id + anciennes via user_id)
+                $q->where('person_id', $person->id)
+                  ->orWhere(function ($sq) use ($userId) {
+                      $sq->whereNull('person_id')->where('user_id', $userId);
+                  });
+            } else {
+                // 🏢 club / entreprise : comportement historique
+                $q->where('user_id', $userId);
+            }
+        })
         ->get();
 
     // 🟢 Slots du nouveau schedule

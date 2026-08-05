@@ -276,14 +276,27 @@ if ($reservation) {
     ]);
 
     // Si paiement accepté, remettre etat_ass à 0
-    // pour la personne liée au user_id de cette réservation
+    // pour la personne liée à cette réservation (ou user_id en mode historique)
     if ($isSuccess && !empty($reservation->user_id)) {
-        Person::where('user_id', $reservation->user_id)
-            ->update([
-                'etat_ass'   => 0,
-                'updated_at' => now(),
-                 'assured_expires_on'=> now(),
+        $targetPerson = null;
+
+        if (!empty($reservation->person_id)) {
+            $targetPerson = Person::find($reservation->person_id);
+        }
+
+        if (!$targetPerson) {
+            $targetPerson = Person::where('user_id', $reservation->user_id)
+                ->whereNull('parent_id')
+                ->first();
+        }
+
+        if ($targetPerson) {
+            $targetPerson->update([
+                'etat_ass'          => 0,
+                'updated_at'        => now(),
+                'assured_expires_on'=> now(),
             ]);
+        }
     }
 }  
 

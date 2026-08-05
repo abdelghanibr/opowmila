@@ -9,6 +9,9 @@ class Person extends Model
     protected $table = 'persons';
    protected $fillable = [
     'user_id',
+    'parent_id',
+    'guardian_docs',
+    'complex_id',
     'firstname',
     'lastname',
     'birth_date',
@@ -39,9 +42,43 @@ class Person extends Model
     //'entreprise_id'
 ];
 
+    protected $casts = [
+        'guardian_docs' => 'array',
+    ];
+
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * 👨‍👦 Le tuteur/parent de cet enfant (pour les enfants inscrits par un parent)
+     */
+    public function parent()
+    {
+        return $this->belongsTo(Person::class, 'parent_id');
+    }
+
+    /**
+     * 👶 Les enfants inscrits sous ce compte parent
+     */
+    public function children()
+    {
+        return $this->hasMany(Person::class, 'parent_id');
+    }
+
+    public function isChild(): bool
+    {
+        return !empty($this->parent_id);
+    }
+
+    /**
+     * 👤 Compte utilisateur qui possède cette personne
+     * (la personne elle-même, ou son parent si c'est un enfant)
+     */
+    public function ownerUser()
+    {
+        return $this->user ?: optional($this->parent)->user;
     }
 
     public function club()

@@ -92,6 +92,20 @@ private function authorizeDossierAccess(Dossier $dossier)
 
     /*
     |--------------------------------------------------------------------------
+    | 4bis) 👶 Parent du dossier d'un enfant (person.user_id = null, parent_id = parent)
+    |--------------------------------------------------------------------------
+    */
+    if (
+        $dossier->person &&
+        empty($dossier->person->user_id) &&
+        $dossier->person->parent &&
+        (int) $dossier->person->parent->user_id === (int) $user->id
+    ) {
+        return true;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | 5) Admin / directeur de complexe : voir seulement dossiers de son complexe
     |--------------------------------------------------------------------------
     */

@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Models\Person;
 use App\Models\Dossier;
+use App\Models\User;
 use Carbon\Carbon;
 
 class ProfileController extends Controller
@@ -17,29 +18,142 @@ class ProfileController extends Controller
         return redirect()->route('profile.step', 1);
     }
 
+    /**
+     * 👶 Page "Mes enfants" (comptes person uniquement)
+     */
+    public function children()
+    {
+        $user = Auth::user();
+
+        $parentPerson = Person::where('user_id', $user->id)
+            ->whereNull('parent_id')
+            ->orderByDesc('id')
+            ->first();
+
+        $children = $parentPerson
+            ? Person::where('parent_id', $parentPerson->id)
+                ->with(['ageCategory', 'dossier'])
+                ->orderByDesc('id')
+                ->get()
+            : collect();
+
+        return view('person.children', compact('parentPerson', 'children'));
+    }
+
+    /**
+     * ➕ Créer un enfant (personne vide rattachée au parent)
+     */
+    public function storeChild(Request $request)
+    {
+        $user = Auth::user();
+
+        if ($user->type !== 'person') {
+            abort(403);
+        }
+
+        $parentPerson = Person::where('user_id', $user->id)
+            ->whereNull('parent_id')
+            ->orderByDesc('id')
+            ->firstOrFail();
+
+        $child = Person::create([
+            'user_id'    => null,
+            'parent_id'  => $parentPerson->id,
+            'complex_id' => $parentPerson->complex_id ?: ($user->complex_id ?? null),
+        ]);
+
+        session(['edit_person_id' => $child->id]);
+
+        return redirect()
+            ->route('profile.step', 1)
+            ->with('info', '👶 Ajoutez maintenant les informations de votre enfant (étapes 1 à 4).');
+    }
+
+    /**
+     * ✏️ Passer en mode édition d'un enfant
+     */
+    public function editChild($personId)
+    {
+        $user = Auth::user();
+
+        $child = Person::where('id', $personId)
+            ->whereHas('parent', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            })
+            ->firstOrFail();
+
+        session(['edit_person_id' => $child->id]);
+
+        return redirect()
+            ->route('profile.step', 1)
+            ->with('info', '📝 Mode édition enfant activé.');
+    }
+
+    /**
+     * 👤 Personne "de base" du compte (le parent lui-même)
+     */
+    private function accountParentPerson(User $user): ?Person
+    {
+        return Person::where('user_id', $user->id)
+            ->whereNull('parent_id')
+            ->orderByDesc('id')
+            ->first();
+    }
+
+    /**
+     * Personne active dans le wizard :
+     * - club/entreprise → personne en session (ou nouvelle)
+     * - person → le parent lui-même, ou l'enfant en cours d'édition
+     *
+     * @return array{0: Person|null, 1: bool} [personne, isChild]
+     */
+    private function activePerson(User $user): array
+    {
+        if ($user->type === 'club' || $user->type === 'company') {
+            if (session()->has('edit_person_id')) {
+                return [Person::find(session('edit_person_id')), false];
+            }
+            return [new Person(), false];
+        }
+
+        $parentPerson = $this->accountParentPerson($user);
+
+        $activePersonId = session('edit_person_id');
+        if ($activePersonId) {
+            $person = Person::where('id', $activePersonId)
+                ->where(function ($q) use ($user, $parentPerson) {
+                    $q->where('user_id', $user->id);
+                    if ($parentPerson) {
+                        $q->orWhere('parent_id', $parentPerson->id);
+                    }
+                })
+                ->first();
+
+            if ($person) {
+                return [$person, $person->isChild()];
+            }
+        }
+
+        return [$parentPerson, false];
+    }
+
 public function showStep($step)
 {
     $user = Auth::user();
-     $person = Person::where('user_id', $user->id)->orderByDesc('id')->firstOrFail();
-     $dossier = Dossier::where('person_id', $person->id)->first();
-   //dd($dossier->attachments);
-    // 🔹 إذا كا مستخدم club أو entreprise
-    if ($user->type === 'club' || $user->type === 'company') {
 
-        if(session()->has('edit_person_id')) {
-            $person = Person::find(session('edit_person_id'));
-        } else {
-            // 👈 إنشاء شخص جديد (حقول فارغة)
-            $person = new Person();
-        }
+    [$person, $isChild] = $this->activePerson($user);
 
-    } 
-    // 🔹 إذا كان المستخدم فردي person
-    else {
-        $person = Person::where('user_id', $user->id)
-                        ->orderByDesc('id')
-                        ->first();
+    $parentPerson = null;
+    if ($user->type === 'person') {
+        $parentPerson = $this->accountParentPerson($user);
     }
+
+    // 👶 Un enfant n'a pas besoin de saisir les infos du tuteur (étape 2 = le parent)
+    if ($isChild && $step == 2) {
+        return redirect()->route('profile.step', 3);
+    }
+
+    $dossier = $person ? Dossier::where('person_id', $person->id)->first() : null;
 
     $wilayas = [
         "أدرار","الشلف","الأغواط","أم البواقي","باتنة","بجاية","بسكرة","بشار",
@@ -51,9 +165,8 @@ public function showStep($step)
         "غرداية","غليزان"
     ];
 
-    return view('profile.steps', compact('step','user','person','wilayas','dossier'));
+    return view('profile.steps', compact('step','user','person','wilayas','dossier','parentPerson','isChild'));
 }
-
 
 
 
@@ -62,9 +175,11 @@ public function showStep($step)
         $user = Auth::user();
         $type = $user->type;
 
-         //$dossier = Dossier::where('person_id', $person->id)->first();
-$person = Person::where('user_id', $user->id)->orderByDesc('id')->firstOrFail();
-    $dossier = Dossier::where('person_id', $person->id)->first();
+        [$person, $isChild] = $this->activePerson($user);
+
+        $parentPerson = $this->accountParentPerson($user);
+
+        $dossier = $person ? Dossier::where('person_id', $person->id)->first() : null;
     
         switch ($step) {
 
@@ -83,14 +198,23 @@ $person = Person::where('user_id', $user->id)->orderByDesc('id')->firstOrFail();
                 $age = Carbon::parse($request->birth_date)->age;
                 $ageCat = $age <= 12 ? 1 : ($age <= 17 ? 2 : ($age <= 100 ? 3 : 4));
 
-                if ($type === 'club' || $type === 'company') {
+                if ($isChild) {
+                    // 👶 Un enfant doit être mineur
+                    if ($age >= 18) {
+                        return back()->withErrors([
+                            'birth_date' => '❌ Pour inscrire un enfant, son âge doit être inférieur à 18 ans.',
+                        ])->withInput();
+                    }
+
+                    $person->update(array_merge($validated, ['age_category_id' => $ageCat]));
+                } elseif ($type === 'club' || $type === 'company') {
                     Person::create(array_merge($validated, [
                         'user_id' => $user->id,
                         'age_category_id' => $ageCat
                     ]));
                 } else {
                     Person::updateOrCreate(
-                        ['user_id' => $user->id],
+                        ['user_id' => $user->id, 'parent_id' => null],
                         array_merge($validated, ['age_category_id' => $ageCat])
                     );
                 }
@@ -102,14 +226,23 @@ $person = Person::where('user_id', $user->id)->orderByDesc('id')->firstOrFail();
             case 2:
                 if ($type !== 'person') return redirect()->route('profile.step', 3);
 
-                $validated = $request->validate([
-                    'parent_firstname' => 'required|string|max:50',
-                    'parent_lastname' => 'required|string|max:50',
-                    'parent_phone' => 'required|string|max:20',
-                ]);
+                if ($isChild) {
+                    // 👶 Les infos du tuteur = le parent connecté (pas de re-saisie)
+                    $person->update([
+                        'parent_firstname' => $parentPerson->firstname ?? '',
+                        'parent_lastname'  => $parentPerson->lastname ?? '',
+                        'parent_phone'     => $parentPerson->phone ?? '',
+                        'parent_relation'  => 'parent',
+                    ]);
+                } else {
+                    $validated = $request->validate([
+                        'parent_firstname' => 'required|string|max:50',
+                        'parent_lastname' => 'required|string|max:50',
+                        'parent_phone' => 'required|string|max:20',
+                    ]);
 
-                $person = Person::where('user_id', $user->id)->orderByDesc('id')->first();
-                $person->update($validated);
+                    $person->update($validated);
+                }
 
                 return redirect()->route('profile.step', 3);
 
@@ -127,8 +260,15 @@ $person = Person::where('user_id', $user->id)->orderByDesc('id')->firstOrFail();
 
                 $validated = $request->validate($rules);
 
-                $person = Person::where('user_id', $user->id)->orderByDesc('id')->first();
-                $person->update($validated);
+                if ($isChild) {
+                    // 👶 Pré-remplir avec les infos du parent si vides
+                    $person->update([
+                        'phone'   => $validated['phone'] ?: ($parentPerson->phone ?? ''),
+                        'address' => $validated['address'] ?: ($parentPerson->address ?? ''),
+                    ]);
+                } else {
+                    $person->update($validated);
+                }
                 
                 
                 Dossier::updateOrCreate(
@@ -154,9 +294,9 @@ $person = Person::where('user_id', $user->id)->orderByDesc('id')->firstOrFail();
 case 4:
 
     // ================== استرجاع الشخص والملف ==================
-    $person = Person::where('user_id', $user->id)
-        ->orderByDesc('id')
-        ->firstOrFail();
+    if (!$person) {
+        return redirect()->route('profile.step', 1);
+    }
 
     $dossier = Dossier::where('person_id', $person->id)->first();
 
@@ -309,6 +449,37 @@ if ($isMinor) {
         }
     }
 
+    // ================== وثائق الولي المشتركة (guardian_docs) ==================
+    // 👶 Un enfant hérite des docs du tuteur ; une seule saisie suffit pour tous les enfants
+    $guardianDocsOwner = $isChild ? $parentPerson : ($type === 'person' ? $person : null);
+
+    if ($guardianDocsOwner) {
+        $guardianDocs = is_array($guardianDocsOwner->guardian_docs)
+            ? $guardianDocsOwner->guardian_docs
+            : [];
+
+        // copier les docs du parent vers l'enfant s'ils manquent
+        if ($isChild) {
+            foreach (['guardian_id_card', 'parental_authorization'] as $k) {
+                if (empty($attachments[$k]) && !empty($guardianDocs[$k])) {
+                    $attachments[$k] = $guardianDocs[$k];
+                }
+            }
+        }
+
+        // propager les docs envoyés vers le compte parent (partagés avec tous les enfants)
+        foreach (['guardian_id_card', 'parental_authorization'] as $k) {
+            if (!empty($attachments[$k])) {
+                $guardianDocs[$k] = $attachments[$k];
+            }
+        }
+
+        if ($guardianDocs) {
+            $guardianDocsOwner->guardian_docs = $guardianDocs;
+            $guardianDocsOwner->save();
+        }
+    }
+
     // ================== حفظ الشخص ==================
     $person->save();
 
@@ -331,6 +502,14 @@ Dossier::updateOrCreate(
 
 
     // ================== التوجيه النهائي ==================
+    if ($isChild) {
+        session()->forget('edit_person_id');
+
+        return redirect()
+            ->route('children.index')
+            ->with('success', '✔ تم حفظ ملف الطفل بنجاح 🎉');
+    }
+
     $route = match ($user->type) {
         'admin'   => 'admin.dashboard',
         'club'    => 'club.dashboard',
@@ -366,10 +545,15 @@ public function newPerson()
 {
     $user = Auth::user();
 
-    // التحقق من أن الشخص تابع فعلاً للمستخدم (نادي/مؤسسة)
+    // التحقق من أن الشخص تابع فعلاً للمستخدم (نادي/مؤسسة) أو ابن تابع للوالد
     $person = Person::where('id', $personId)
-                    ->where('user_id', $user->id)
-                    ->firstOrFail();
+        ->where(function ($q) use ($user) {
+            $q->where('user_id', $user->id)
+              ->orWhereHas('parent', function ($p) use ($user) {
+                  $p->where('user_id', $user->id);
+              });
+        })
+        ->firstOrFail();
 
     // 🧠 تخزين الـ ID في Session للعمل في وضع تعديل
     session(['edit_person_id' => $person->id]);

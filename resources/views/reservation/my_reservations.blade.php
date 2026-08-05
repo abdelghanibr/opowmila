@@ -395,6 +395,7 @@
                         <tr>
                             <th>#</th>
                             <th>النشاط</th>
+                            <th>محجوز لـ</th>
                             <th>الموسم</th>
                             <th>من</th>
                             <th>إلى</th>
@@ -452,6 +453,16 @@
                                 <td>{{ $r->id }}</td>
 
                                 <td>{{ optional($r->complexActivity?->activity)->title ?? '—' }}</td>
+
+                                <td>
+                                    @if($r->person)
+                                        <span class="badge bg-info text-dark">
+                                            👶 {{ $r->person->firstname }} {{ $r->person->lastname }}
+                                        </span>
+                                    @else
+                                        —
+                                    @endif
+                                </td>
 
                                 <td>{{ $r->season?->name ?? '—' }}</td>
 
@@ -616,6 +627,15 @@
                                 #{{ $r->id }}
                             </div>
                         </div>
+
+                        @if($r->person)
+                            <div class="mobile-row">
+                                <div class="mobile-label">👶 محجوز لـ</div>
+                                <div class="mobile-value">
+                                    {{ $r->person->firstname }} {{ $r->person->lastname }}
+                                </div>
+                            </div>
+                        @endif
 
                         <div class="mobile-row">
                             <div class="mobile-label">📅 من</div>

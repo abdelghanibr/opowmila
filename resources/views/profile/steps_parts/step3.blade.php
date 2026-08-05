@@ -10,7 +10,7 @@
             <label class="form-label">رقم الهاتف</label>
             <input type="text" name="phone"
                 class="form-control @error('phone') is-invalid @enderror"
-                value="{{ old('phone', $person->phone) }}">
+                value="{{ old('phone', $person->phone ?: (($isChild ?? false) ? ($parentPerson->phone ?? '') : '')) }}">
             @error('phone')
                 <div class="form-error text-danger small">{{ $message }}</div>
             @enderror
@@ -40,7 +40,7 @@
             <label class="form-label">العنوان</label>
             <input type="text" name="address"
                 class="form-control @error('address') is-invalid @enderror"
-                value="{{ old('address', $person->address) }}">
+                value="{{ old('address', $person->address ?: (($isChild ?? false) ? ($parentPerson->address ?? '') : '')) }}">
             @error('address')
                 <div class="form-error text-danger small">{{ $message }}</div>
             @enderror
@@ -57,7 +57,7 @@
 
 
     <div class="d-flex justify-content-between mt-3">
-        <a href="{{ route('profile.step', 2) }}" class="btn btn-secondary px-4">السابق</a>
+        <a href="{{ route('profile.step', ($isChild ?? false) ? 1 : 2) }}" class="btn btn-secondary px-4">السابق</a>
         <button class="btn btn-success px-4">التالي</button>
     </div>
 

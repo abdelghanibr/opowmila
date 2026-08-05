@@ -252,13 +252,18 @@ Route::get('/person/profile/edit', [RegisterController::class, 'edit'])->name('p
  Route::put('/person/profile/update', [RegisterController::class, 'update'])
         ->name('person.profile.update');
 
+// 👶 Mes enfants
+Route::get('/person/children', [ProfileController::class, 'children'])->name('children.index');
+Route::post('/person/children', [ProfileController::class, 'storeChild'])->name('children.store');
+Route::get('/person/children/{person}/edit', [ProfileController::class, 'editChild'])->name('children.edit');
+
 Route::get('/dossier/{dossier}/print', 
     [DossierController::class, 'print'])
     ->name('dossier.print');
     
  
      
-Route::get('/forms/formulaire/{id}/download', [FormController::class, 'downloadFormulaire'])
+Route::get('/forms/formulaire/{id}/download', [DossierController::class, 'downloadFormulaire'])
     ->name('forms.formulaire.download');
 
 Route::get('/dossiers/{id}/autorisation-parentale/download', [DossierController::class, 'downloadAutorisationParentale'])
