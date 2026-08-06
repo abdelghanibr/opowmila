@@ -283,6 +283,54 @@
     </a>
 </div>
 
+        {{-- الفرق --}}
+        <div class="col-md-3">
+            <a href="{{ route('teams.index') }}" class="dash-card text-decoration-none">
+                <div class="dash-icon">🤼‍♂️</div>
+                <div class="dash-title">الفرق</div>
+                <p class="dash-desc">
+                    إدارة الفرق والأصناف الرياضية الخاصة بالمؤسسة.
+                </p>
+                <div class="count-box">عدد الفرق: {{ \App\Models\Team::count() }}</div>
+            </a>
+        </div>
+
+        {{-- فئات العمر --}}
+        <div class="col-md-3">
+            <a href="{{ route('age-categories.index') }}" class="dash-card text-decoration-none">
+                <div class="dash-icon">👶</div>
+                <div class="dash-title">فئات العمر</div>
+                <p class="dash-desc">
+                    ضبط الفئات العمرية المعتمدة لتسجيل المنخرطين.
+                </p>
+                <div class="count-box">عدد الفئات: {{ \App\Models\AgeCategory::count() }}</div>
+            </a>
+        </div>
+
+        {{-- حساب بدون ملف (محدود بمجمع هذا المدير) --}}
+        <div class="col-md-3">
+            <a href="{{ route('admin.accounts.no-dossier') }}" class="dash-card text-decoration-none">
+                <div class="dash-icon">🚫</div>
+                <div class="dash-title">حسابات بدون ملف</div>
+                <p class="dash-desc">
+                    حذف الحسابات المسجلة في هذا المجمع ولم تُقدّم أي ملف — فردي أو جماعي.
+                </p>
+                <div class="count-box">العدد: {{ $noDossierAccountsCount ?? 0 }}</div>
+            </a>
+        </div>
+
+        {{-- البرنامج الأسبوعي للمنشأة --}}
+        <div class="col-md-3">
+            <a href="{{ route('admin.complex.programme', $complex->id) }}" class="dash-card text-decoration-none">
+                <div class="dash-icon">📅</div>
+                <div class="dash-title">البرنامج الأسبوعي للمنشأة</div>
+                <p class="dash-desc">
+                    عرض الأفواج النشطة في أسبوع واحد محدد، مع توقيت كل حصة وعدد الحجوزات لكل فوج.
+                </p>
+                <div class="count-box">أفواج نشطة: {{ $activeGroupsCount ?? 0 }}</div>
+            </a>
+        </div>
+
     </div>
 </div>
 @endsection

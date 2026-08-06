@@ -38,6 +38,7 @@
                     <th>المرفقات</th>
                     <th>ملاحظة المسؤول</th>
                     <th>إجراءات</th>
+                    <th>حذف نهائي</th>
                 </tr>
             </thead>
 
@@ -156,7 +157,67 @@
 </a>
 
                     </td>
+
+                    {{-- 🗑️ حذف نهائي (عمود منفصل + تأكيد محمي) --}}
+                    <td>
+                        @if($c->etat !== 'approved')
+                            <button class="btn btn-outline-danger btn-sm"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#deleteClubModal{{ $c->id }}">
+                                🗑️ حذف
+                            </button>
+                        @else
+                            <span class="badge bg-secondary" title="لا يمكن حذف نادٍ مقبول">—</span>
+                        @endif
+                    </td>
                 </tr>
+
+                {{-- ===== Modal حذف نهائي (يتطلب كتابة اسم النادي) ===== --}}
+                @if($c->etat !== 'approved')
+                <div class="modal fade" id="deleteClubModal{{ $c->id }}" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <form action="{{ route('admin.clubs.destroy', $c->id) }}" method="POST">
+                                @csrf
+                                @method('DELETE')
+
+                                <div class="modal-header bg-danger text-white">
+                                    <h5 class="modal-title">🗑️ حذف نهائي</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+
+                                <div class="modal-body">
+                                    <div class="alert alert-danger small">
+                                        سيتم حذف النادي <strong>{{ $c->nom }}</strong>
+                                        وحساب تسجيل الدخول الخاص به نهائيًا.<br>
+                                        هذه العملية لا يمكن التراجع عنها.
+                                    </div>
+
+                                    <label class="fw-bold small">
+                                        اكتب اسم النادي لتأكيد الحذف:
+                                    </label>
+                                    <input type="text"
+                                           class="form-control mt-1 delete-club-confirm-input"
+                                           data-club-name="{{ $c->nom }}"
+                                           data-confirm-btn="#btnConfirmDelete{{ $c->id }}"
+                                           placeholder="{{ $c->nom }}"
+                                           autocomplete="off">
+                                </div>
+
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                    <button type="submit"
+                                            id="btnConfirmDelete{{ $c->id }}"
+                                            class="btn btn-danger"
+                                            disabled>
+                                        حذف نهائي
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                @endif
 
                 {{-- ===== Modal Note Admin ===== --}}
                 <div class="modal fade" id="noteModal{{ $c->id }}" tabindex="-1">
@@ -248,6 +309,24 @@ table thead th {
 @push('js')
 @include('admin.partials.datatable-script', ['tableId' => '#clubsTable'])
 
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.delete-club-confirm-input').forEach(function (input) {
+        const btn = document.querySelector(input.dataset.confirmBtn);
+        if (!btn) return;
+        const expected = (input.dataset.clubName || '').trim();
 
+        input.addEventListener('input', function () {
+            btn.disabled = input.value.trim() !== expected;
+        });
+
+        // remise à zéro à la fermeture du modal
+        input.closest('.modal').addEventListener('hidden.bs.modal', function () {
+            input.value = '';
+            btn.disabled = true;
+        });
+    });
+});
+</script>
 
 @endpush

@@ -383,7 +383,9 @@ public function form($complexId)
         $person = $parentPerson;
 
         // 🎯 si une personne précise est demandée (enfant), on filtre pour elle
-        $requestedPersonId = request('person_id');
+        $requestedPersonId = request('person_id') ?? session('booking_person_id');
+        session()->forget('booking_person_id');
+
         if ($requestedPersonId && $parentPerson) {
             $requested = Person::where('id', $requestedPersonId)
                 ->where(function ($q) use ($user, $parentPerson) {
@@ -601,7 +603,7 @@ $seasons = Season::where(function ($query) use ($today, $limitDate) {
         'selectedSeasonId',
         'schedules',
         'reservablePersons'
-    ) + ['person_id' => $person?->id]);
+    ) + ['person_id' => $person?->id, 'selectedPerson' => $person]);
 }
 
 public function renewStore(Request $request, Reservation $reservation)

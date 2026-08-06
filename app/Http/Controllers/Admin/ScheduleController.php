@@ -349,27 +349,41 @@ public function edit($id)
 public function occupiedSlots(Request $request)
 {
     $request->validate([
-        'complex_id'  => 'required|integer',
-        'activity_id' => 'required|integer',
+        'complex_id' => 'required|integer',
+        'activity_id' => 'nullable|integer',
     ]);
 
-    // 🔗 إيجاد complex_activity_id
-    $complexActivity = ComplexActivity::where('complex_id', $request->complex_id)
-        ->where('activity_id', $request->activity_id)
-        ->first();
+    $excludeSchedule = $request->integer('exclude_schedule', 0);
 
-    if (!$complexActivity) {
+    $complexId = $request->complex_id;
+
+    // 🔗 ComplexActivities du complexe (tous si pas d'activité précise)
+    $query = ComplexActivity::where('complex_id', $complexId);
+
+    if ($request->filled('activity_id')) {
+        $query->where('activity_id', $request->activity_id);
+    }
+
+    $complexActivities = $query->with('activity')->get();
+
+    if ($complexActivities->isEmpty()) {
         return response()->json([]);
     }
 
-    // 📦 جلب الجداول المرتبطة
-    $schedules = Schedule::where('complex_activity_id', $complexActivity->id)
+    // 📦 Tous les schedules ACTIFS liés à ces complex_activities
+    $schedules = Schedule::whereIn('complex_activity_id', $complexActivities->pluck('id'))
         ->whereNotNull('time_slots')
+        ->where('active', 1)
+        ->when($excludeSchedule, fn($q) => $q->where('id', '!=', $excludeSchedule))
+        ->with('complexActivity.activity')
         ->get();
 
     $events = [];
 
     foreach ($schedules as $schedule) {
+        $activity = $schedule->complexActivity->activity ?? null;
+        $color = $activity->color ?? '#dc3545';
+
         $slots = json_decode($schedule->time_slots, true);
 
         if (!is_array($slots)) continue;
@@ -377,26 +391,23 @@ public function occupiedSlots(Request $request)
         foreach ($slots as $slot) {
 
             // day_number: 0=الأحد ... 6=السبت
-         $events[] = [
-    'daysOfWeek' => [(int) $slot['day_number']],
-    'startTime'  => $slot['start'],
-    'endTime'    => $slot['end'],
-    'startRecur' => $schedule->date_debut
-        ? Carbon::parse($schedule->date_debut)->toDateString()
-        : Carbon::today()->toDateString(),
-    'endRecur' => $schedule->date_fin
-        ? Carbon::parse($schedule->date_fin)->addDay()->toDateString()
-        : Carbon::today()->addYears(5)->toDateString(),
+            // Récurrence hebdo pure (sans startRecur/endRecur) pour afficher
+            // tous les groupes actifs dans la semaine affichée.
+            $events[] = [
+                'daysOfWeek' => [(int) $slot['day_number']],
+                'startTime'  => $slot['start'],
+                'endTime'    => $slot['end'],
 
-    'display' => 'background',
-    'backgroundColor' => '#dc3545',
+                'display' => 'background',
+                'backgroundColor' => $color,
 
-    // 👈 اسم المجموعة هنا
-    'extendedProps' => [
-        'groupe' => $schedule->groupe,
-    ],
-];
-
+                // 👈 Nom du groupe + activité
+                'extendedProps' => [
+                    'groupe'   => $schedule->groupe,
+                    'activity' => $activity->title ?? '',
+                    'color'    => $color,
+                ],
+            ];
         }
     }
 

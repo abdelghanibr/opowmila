@@ -155,7 +155,7 @@ function selectActivity(activityId) {
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            window.location.href = "{{ route('reservation.form', auth()->user()->complex_id) }}";
+            window.location.href = "{{ auth()->user()->complex_id ? route('reservation.form', auth()->user()->complex_id) : route('reservation.select_type') }}";
         }
     })
     .catch(err => console.error("Erreur:", err));

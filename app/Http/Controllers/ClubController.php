@@ -4,7 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Club;
+use App\Models\User;
+use App\Models\Person;
+use App\Models\Reservation;
+use App\Models\Schedule;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request; 
 class ClubController extends Controller
 {
@@ -61,6 +66,55 @@ class ClubController extends Controller
         ]);
 
         return back()->with('error','تم رفض النادي ❌');
+    }
+
+    /**
+     * 🗑️ حذف النادي وحساب تسجيل الدخول الخاص به (فقط إذا لم يكن مقبولاً)
+     */
+    public function destroy($id)
+    {
+        $club = Club::findOrFail($id);
+
+        if ($club->etat === 'approved') {
+            return back()->with('error', '❌ لا يمكن حذف نادٍ مقبول (approved).');
+        }
+
+        $userId = $club->user_id;
+
+        DB::transaction(function () use ($club, $userId) {
+            // Réservations du compte ou de ses membres
+            $memberIds = Person::where('user_id', $userId)->pluck('id');
+
+            $resQuery = Reservation::query();
+            if ($memberIds->isNotEmpty()) {
+                $resQuery->where(function ($q) use ($userId, $memberIds) {
+                    $q->where('user_id', $userId)->orWhereIn('person_id', $memberIds);
+                });
+            } else {
+                $resQuery->where('user_id', $userId);
+            }
+            $resQuery->delete();
+
+            // updated_by orphelin
+            Reservation::where('updated_by', $userId)->update(['updated_by' => null]);
+
+            // Schedules liés au compte
+            Schedule::where('user_id', $userId)->update(['user_id' => null]);
+
+            // Membres + leurs dossiers
+            foreach (Person::where('user_id', $userId)->get() as $member) {
+                \App\Models\Dossier::where('person_id', $member->id)->delete();
+                $member->delete();
+            }
+
+            // Le club
+            $club->delete();
+
+            // Le login (compte utilisateur)
+            User::where('id', $userId)->delete();
+        });
+
+        return back()->with('success', '🗑️ تم حذف النادي وحساب تسجيل الدخول الخاص به بنجاح.');
     }
 
     public function update(Request $request)

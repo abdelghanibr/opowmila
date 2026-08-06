@@ -59,7 +59,6 @@ class ProfileController extends Controller
         $child = Person::create([
             'user_id'    => null,
             'parent_id'  => $parentPerson->id,
-            'complex_id' => $parentPerson->complex_id ?: ($user->complex_id ?? null),
         ]);
 
         session(['edit_person_id' => $child->id]);
@@ -87,6 +86,32 @@ class ProfileController extends Controller
         return redirect()
             ->route('profile.step', 1)
             ->with('info', '📝 Mode édition enfant activé.');
+    }
+
+    /**
+     * 🎟️ Réserver un siège pour un enfant (dossier approuvé requis)
+     */
+    public function reserveChild($personId)
+    {
+        $user = Auth::user();
+
+        $child = Person::where('id', $personId)
+            ->whereHas('parent', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            })
+            ->with('dossier', 'ageCategory')
+            ->firstOrFail();
+
+        if (!$child->dossier || $child->dossier->etat !== 'approved') {
+            return back()->with('error', '⚠️ لا يمكن حجز مقعد لهذا الطفل قبل مصادقة ملفه من الإدارة.');
+        }
+
+        session(['booking_person_id' => $child->id]);
+        session()->forget('activity_id');
+
+        return redirect()
+            ->route('activities.index')
+            ->with('info', '👶 الحجز لصالح ' . $child->firstname . ' ' . $child->lastname . ' — اختر النشاط ثم المركب ثم الفوج.');
     }
 
     /**
@@ -232,7 +257,6 @@ public function showStep($step)
                         'parent_firstname' => $parentPerson->firstname ?? '',
                         'parent_lastname'  => $parentPerson->lastname ?? '',
                         'parent_phone'     => $parentPerson->phone ?? '',
-                        'parent_relation'  => 'parent',
                     ]);
                 } else {
                     $validated = $request->validate([

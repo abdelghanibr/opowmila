@@ -44,8 +44,11 @@ public function index(Request $request)
     $userComplexId = auth()->user()->complex_id;
 
     // نبدأ فقط بالأنشطة المربوطة بالمجمع الخاص بالمستخدم
+    // إذا لم يكن للمستخدم مجمع محدد، نعرض كل الأنشطة المرتبطة بأي مجمع
     $query = Activity::whereHas('complexActivities', function ($q) use ($userComplexId) {
-        $q->where('complex_id', $userComplexId);
+        if ($userComplexId) {
+            $q->where('complex_id', $userComplexId);
+        }
     });
 
     // 🔍 البحث

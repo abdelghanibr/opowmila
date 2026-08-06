@@ -274,7 +274,7 @@
                         <!-- تعليمات التقويم -->
                         <div class="alert alert-soft-info rounded-4 p-3 text-center mt-4 shadow-sm">
                             <strong>كيفية اختيار الأوقات:</strong><br>
-                            الأوقات الحمراء = مشغولة مسبقًا<br>
+                            المنطقة الملوّنة = مواعيد مشغولة في المنشأة (كل نشاط بلونه الخاص)<br>
                             الأوقات الزرقاء = اختياراتك الحالية<br>
                             <em>انقر على الساعة لبدء الاختيار، ثم اسحب لتحديد المدة (ساعة واحدة)</em>
                         </div>
@@ -366,8 +366,7 @@
         border-radius: 6px;
     }
     .fc-bg-event {
-        background-color: #dc3545 !important;
-        opacity: 0.55 !important;
+        opacity: 0.5 !important;
         border: none;
         border-radius: 4px;
     }
@@ -390,11 +389,22 @@ function updateHiddenField() {
 
 document.addEventListener('DOMContentLoaded', function () {
 
+    // 📅 Semaine fixe : dimanche → samedi de la semaine courante
+    const now = new Date();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 7);
+
     calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
         initialView: 'timeGridWeek',
         locale: 'ar',
         direction: 'rtl',
         firstDay: 0,
+        initialDate: weekStart,
+        visibleRange: { start: weekStart, end: weekEnd },
+        headerToolbar: { left: '', center: 'title', right: '' },
         selectable: true,
         selectOverlap: false, // ❌ يمنع التداخل
         slotMinTime: "05:00:00",
@@ -409,22 +419,31 @@ eventDidMount(info) {
             if (info.event.display === 'background') {
 
                 const groupName = info.event.extendedProps?.groupe;
+                const actName = info.event.extendedProps?.activity;
                 if (!groupName) return;
 
                 const label = document.createElement('div');
-                label.innerText = groupName;
+                label.innerText = (actName ? actName + ' · ' : '') + groupName;
 
                 label.style.position = 'absolute';
-                label.style.top = '50%';
-                label.style.left = '50%';
-                label.style.transform = 'translate(-50%, -50%)';
-                label.style.fontSize = '8px';
+                label.style.top = '0';
+                label.style.left = '0';
+                label.style.right = '0';
+                label.style.bottom = '0';
+                label.style.display = 'flex';
+                label.style.alignItems = 'center';
+                label.style.justifyContent = 'center';
+                label.style.textAlign = 'center';
+                label.style.fontSize = '9px';
                 label.style.fontWeight = 'bold';
-         label.style.color = '#000';        // noir
-label.style.textShadow = 'none';   // اختياري
-                label.style.whiteSpace = 'nowrap';
-                label.style.opacity = '3';
-                label.style.textShadow = '0 1px 2px rgba(0,0,0,.6)';
+                label.style.color = '#fff';
+                label.style.whiteSpace = 'normal';
+                label.style.wordBreak = 'break-word';
+                label.style.overflow = 'hidden';
+                label.style.lineHeight = '1.1';
+                label.style.padding = '2px';
+                label.style.borderRadius = '4px';
+                label.style.background = info.event.backgroundColor || '#dc3545';
 
                 info.el.appendChild(label);
             }
@@ -481,7 +500,7 @@ label.style.textShadow = 'none';   // اختياري
 });
 
 // ===============================
-// تحميل الأوقات المشغولة تلقائياً
+// تحميل الأوقات المشغولة تلقائياً (كل النشاطات الملوّنة)
 // ===============================
 document.getElementById("complex").addEventListener("change", loadOccupied);
 document.getElementById("activity").addEventListener("change", loadOccupied);
@@ -489,14 +508,13 @@ document.getElementById("activity").addEventListener("change", loadOccupied);
 function loadOccupied() {
 
     const complex = document.getElementById("complex").value;
-    const activity = document.getElementById("activity").value;
 
-    if (!complex || !activity) return;
+    if (!complex) return;
 
     // 🧹 حذف الأحداث السابقة
     calendar.getEvents().forEach(e => e.remove());
 
-    fetch(`{{ route('admin.schedules.occupied') }}?complex_id=${complex}&activity_id=${activity}`)
+    fetch(`{{ route('admin.schedules.occupied') }}?complex_id=${complex}`)
         .then(res => res.json())
         .then(events => {
 

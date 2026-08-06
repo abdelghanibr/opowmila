@@ -345,6 +345,30 @@ public function reject($id)
     return back()->with('error', 'تم رفض الملف ❌');
 }
 
+public function destroy($id)
+{
+    $d = Dossier::findOrFail($id);
+
+    if ($d->etat === 'approved') {
+        return back()->with('error', 'لا يمكن حذف ملف مقبول.');
+    }
+
+    $files = json_decode($d->attachments, true) ?? [];
+
+    $d->delete();
+
+    foreach ($files as $path) {
+        if (is_string($path) && $path !== '') {
+            $full = public_path($path);
+            if (file_exists($full)) {
+                @unlink($full);
+            }
+        }
+    }
+
+    return back()->with('success', 'تم حذف الملف نهائيًا ✔');
+}
+
 
  /*public function approve($id)
 {

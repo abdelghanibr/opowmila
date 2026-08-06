@@ -222,12 +222,17 @@ body{
     display:grid;
     grid-template-columns:2fr 1fr;
     gap:20px;
+    align-items:stretch;
+}
+
+.content-grid > *{
+    min-width:0;
 }
 
 .panel-card{
     background:#fff;
     border-radius:26px;
-    padding:22px;
+    padding:clamp(16px,2vw,24px);
     box-shadow:0 10px 28px rgba(15,23,42,.07);
     border:1px solid var(--border);
     overflow:hidden;
@@ -256,13 +261,14 @@ body{
 }
 
 .chart-card{
-    height:385px;
+    min-height:385px;
 }
 
 .chart-wrapper{
     position:relative;
     height:300px;
     width:100%;
+    min-width:0;
 }
 
 .activity-row{
@@ -312,7 +318,7 @@ body{
 
 .age-chart-layout{
     display:grid;
-    grid-template-columns:220px 1fr;
+    grid-template-columns:minmax(200px,240px) 1fr;
     gap:20px;
     align-items:center;
 }
@@ -419,7 +425,7 @@ body{
 
 .menu-grid{
     display:grid;
-    grid-template-columns:repeat(4,1fr);
+    grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
     gap:16px;
 }
 
@@ -627,7 +633,7 @@ body{
     }
 
     .chart-card{
-        height:340px;
+        min-height:340px;
     }
 
     .chart-wrapper{
@@ -638,6 +644,10 @@ body{
 @media(max-width:420px){
     .menu-grid{
         grid-template-columns:1fr;
+    }
+
+    .chart-wrapper{
+        height:230px;
     }
 
     .dash-card{
@@ -808,11 +818,76 @@ body{
 
             </div>
 
+            {{-- ===== إحصائيات حسب المنشآت ===== --}}
+            <div class="menu-section">
+                <h5 class="menu-title">📊 إحصائيات حسب المنشآت</h5>
+
+                <div class="content-grid">
+                    <div class="panel-card chart-card">
+                        <div class="panel-head">
+                            <h5 class="panel-title">عدد الحجوزات حسب المنشأة</h5>
+                            <span class="panel-badge">{{ $complexStats->count() }} منشأة</span>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="complexReservationsChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="panel-card chart-card">
+                        <div class="panel-head">
+                            <h5 class="panel-title">نسبة المنخرطين حسب الجنس</h5>
+                            <span class="panel-badge">{{ $totalAgeRegistrations ?? 0 }} منخرط</span>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="genderChart"></canvas>
+                        </div>
+                        <div class="age-legend" id="genderLegend"></div>
+                    </div>
+                </div>
+
+                <div class="panel-card" style="margin-top:20px;">
+                    <div class="panel-head">
+                        <h5 class="panel-title">تفاصيل المنشآت</h5>
+                        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                            <span class="panel-badge">{{ $complexStats->count() }} منشأة</span>
+                            <a href="{{ route('admin.complexes.print') }}" target="_blank" class="btn btn-sm btn-light" style="font-weight:800;">🖨️ طباعة</a>
+                            <a href="{{ route('admin.complexes.print') }}" target="_blank" class="btn btn-sm btn-primary" style="font-weight:800;">📄 PDF</a>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" style="font-size:14px;font-weight:700;">
+                            <thead class="table-light" style="color:#082f49;">
+                                <tr>
+                                    <th>المنشأة</th>
+                                    <th>المنخرطون</th>
+                                    <th>الحجوزات</th>
+                                    <th>ملفات مقبولة</th>
+                                    <th>المبالغ المدفوعة (دج)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($complexStats as $cs)
+                                <tr>
+                                    <td>{{ $cs->nom }}</td>
+                                    <td>{{ number_format($cs->subscribers) }}</td>
+                                    <td>{{ number_format($cs->reservations) }}</td>
+                                    <td>{{ number_format($cs->approved) }}</td>
+                                    <td>{{ number_format($cs->paidAmount, 0, ',', ' ') }}</td>
+                                </tr>
+                                @empty
+                                <tr><td colspan="5" class="text-center text-muted py-3">لا توجد منشآت</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <div class="menu-section">
                 <h5 class="menu-title">القائمة السريعة</h5>
 
               <div class="menu-grid">
-
     <a href="{{ route('news.index') }}" class="dash-card">
         <div class="dash-icon">📰</div>
         <h6>الأخبار</h6>
@@ -895,6 +970,55 @@ body{
         <h6>التذاكر</h6>
         <p class="dash-desc">متابعة التذاكر وطلبات الدخول.</p>
         <div class="count-box">{{ \App\Models\Ticket::count() }}</div>
+    </a>
+
+    <a href="{{ route('teams.index') }}" class="dash-card">
+        <div class="dash-icon">🤼‍♂️</div>
+        <h6>الفرق</h6>
+        <p class="dash-desc">إدارة الفرق والأصناف الرياضية.</p>
+        <div class="count-box">{{ \App\Models\Team::count() }}</div>
+    </a>
+
+    <a href="{{ route('age-categories.index') }}" class="dash-card">
+        <div class="dash-icon">👶</div>
+        <h6>فئات العمر</h6>
+        <p class="dash-desc">ضبط الفئات العمرية للأصناف.</p>
+        <div class="count-box">{{ \App\Models\AgeCategory::count() }}</div>
+    </a>
+
+    <a href="{{ route('admin.capacities.index') }}" class="dash-card">
+        <div class="dash-icon">📊</div>
+        <h6>السعات والطاقات</h6>
+        <p class="dash-desc">ضبط طاقة النشاطات في المنشآت.</p>
+        <div class="count-box">{{ \App\Models\ComplexActivity::count() }}</div>
+    </a>
+
+    <a href="{{ route('admin.assurances.index') }}" class="dash-card">
+        <div class="dash-icon">🛡️</div>
+        <h6>التأمينات</h6>
+        <p class="dash-desc">متابعة التأمين السنوي للمنخرطين.</p>
+        <div class="count-box">{{ \App\Models\Person::where('etat_ass', 1)->count() }}</div>
+    </a>
+
+    <a href="{{ route('seat_types.index') }}" class="dash-card">
+        <div class="dash-icon">🪑</div>
+        <h6>أنواع المقاعد</h6>
+        <p class="dash-desc">ضبط أنواع المقاعد وأسعارها.</p>
+        <div class="count-box">{{ \App\Models\SeatType::count() }}</div>
+    </a>
+
+    <a href="{{ route('complex_seats.index') }}" class="dash-card">
+        <div class="dash-icon">🏟️</div>
+        <h6>مقاعد المنشآت</h6>
+        <p class="dash-desc">توزيع المقاعد على المنشآت والمباريات.</p>
+        <div class="count-box">{{ \App\Models\ComplexSeat::count() }}</div>
+    </a>
+
+    <a href="{{ route('admin.accounts.no-dossier') }}" class="dash-card danger-card">
+        <div class="dash-icon">🚫</div>
+        <h6>حسابات بدون ملف</h6>
+        <p class="dash-desc">حذف الحسابات التي لم تقدم أي ملف — فردي أو جماعي.</p>
+        <div class="count-box">{{ $noDossierAccountsCount ?? 0 }}</div>
     </a>
 
     <a href="{{ route('admin.pool-closures.index') }}" class="dash-card danger-card">
@@ -1094,11 +1218,126 @@ if (dossierCtx) {
                             return context.label + ': ' + value + ' ملف (' + percent + '%)';
                         }
                     }
+            }
+        }
+    }
+    });
+}
+
+// 📊 Chart: حجوزات حسب المنشأة
+const complexResCtx = document.getElementById('complexReservationsChart');
+if (complexResCtx) {
+    const labels = @json($complexLabels ?? []);
+    const values = @json($complexReservations ?? []);
+
+    new Chart(complexResCtx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'عدد الحجوزات',
+                data: values,
+                backgroundColor: 'rgba(14,165,233,.75)',
+                borderColor: '#0ea5e9',
+                borderWidth: 1,
+                borderRadius: 8,
+                barThickness: 22,
+                maxBarThickness: 26
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    rtl: true,
+                    textDirection: 'rtl',
+                    backgroundColor: '#0f172a',
+                    padding: 12,
+                    cornerRadius: 12,
+                    titleFont: { family: 'Cairo', size: 12, weight: '700' },
+                    bodyFont: { family: 'Cairo', size: 12 }
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    ticks: { precision: 0, color: '#64748b', font: { family: 'Cairo', size: 11 } },
+                    grid: { color: '#e5e7eb' }
+                },
+                y: {
+                    grid: { display: false },
+                    ticks: { color: '#334155', font: { family: 'Cairo', size: 11, weight: '700' } }
                 }
             }
         }
     });
 }
+
+// 👫 Chart: نسبة المنخرطين حسب الجنس
+const genderCtx = document.getElementById('genderChart');
+if (genderCtx) {
+    const genderData = @json($genderGlobal ?? ['ذكر' => 0, 'أنثى' => 0, 'غير محدد' => 0]);
+    const values = [genderData['ذكر'] || 0, genderData['أنثى'] || 0, genderData['غير محدد'] || 0];
+    const total = values.reduce((a, b) => a + Number(b), 0);
+
+    new Chart(genderCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['ذكور', 'إناث', 'غير محدد'],
+            datasets: [{
+                data: values,
+                backgroundColor: ['#2563eb', '#f472b6', '#cbd5e1'],
+                borderColor: '#ffffff',
+                borderWidth: 4,
+                cutout: '70%'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    rtl: true,
+                    textDirection: 'rtl',
+                    backgroundColor: '#0f172a',
+                    padding: 12,
+                    cornerRadius: 12,
+                    callbacks: {
+                        label: function(context) {
+                            const value = Number(context.raw);
+                            const percent = total > 0 ? Math.round((value / total) * 100) : 0;
+                            return context.label + ': ' + value + ' (' + percent + '%)';
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    const genderLegend = document.getElementById('genderLegend');
+    if (genderLegend) {
+        const gLabels = ['ذكور', 'إناث', 'غير محدد'];
+        const gColors = ['#2563eb', '#f472b6', '#cbd5e1'];
+        genderLegend.innerHTML = gLabels.map((label, i) => {
+            const value = Number(values[i] || 0);
+            const percent = total > 0 ? Math.round((value / total) * 100) : 0;
+            return `
+                <div class="age-legend-item">
+                    <div>
+                        <span class="age-color" style="background:${gColors[i]}"></span>
+                        ${label}
+                    </div>
+                    <strong>${value} / ${percent}%</strong>
+                </div>
+            `;
+        }).join('');
+    }
+}
+
 });
 </script>
 

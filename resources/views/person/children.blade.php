@@ -82,6 +82,16 @@
                                 </a>
                             @endif
 
+                            @if($child->dossier && $child->dossier->etat === 'approved')
+                                <a href="{{ route('children.reserve', $child->id) }}" class="btn btn-success btn-sm">
+                                    <i class="fa-solid fa-calendar-check"></i> حجز مقعد 🎟️
+                                </a>
+                            @else
+                                <span class="btn btn-secondary btn-sm disabled opacity-50">
+                                    <i class="fa-solid fa-lock"></i> الحجز بعد مصادقة الملف
+                                </span>
+                            @endif
+
                             @if($child->dossier && $child->dossier->attachments)
                                 <a href="{{ route('dossier.print', $child->dossier->id) }}" target="_blank" class="btn btn-outline-primary btn-sm">
                                     <i class="fa-solid fa-folder-open"></i> عرض الملف

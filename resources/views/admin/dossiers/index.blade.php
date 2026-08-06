@@ -60,6 +60,7 @@
                     <th>تاريخ الموافقة</th>
                     <th>ملاحظة</th>
                     <th>إجراءات</th>
+                    <th>حذف نهائي</th>
                 </tr>
             </thead>
 
@@ -72,6 +73,11 @@
                         : null;
 
                     $files = json_decode($d->attachments, true) ?? [];
+
+                    $deleteKey = trim(($d->person->firstname ?? '') . ' ' . ($d->person->lastname ?? ''));
+                    if ($deleteKey === '') {
+                        $deleteKey = $d->person->user->name ?? ('ملف#' . $d->id);
+                    }
 
                     $labels = [
                         'medical_certificate'      => '🩺 شهادة طبية',
@@ -180,7 +186,66 @@
                             —
                         @endif
                     </td>
+
+                    {{-- 🗑️ حذف نهائي (عمود منفصل + تأكيد محمي) --}}
+                    <td>
+                        @if($d->etat !== 'approved')
+                            <button class="btn btn-outline-danger btn-xs"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#deleteDossierModal{{ $d->id }}">
+                                🗑️ حذف
+                            </button>
+                        @else
+                            <span class="badge bg-secondary" title="لا يمكن حذف ملف مقبول">—</span>
+                        @endif
+                    </td>
                 </tr>
+
+                {{-- ===== Modal حذف نهائي (يتطلب كتابة اسم الرياضي) ===== --}}
+                @if($d->etat !== 'approved')
+                <div class="modal fade" id="deleteDossierModal{{ $d->id }}" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <form action="{{ route('admin.dossiers.destroy', $d->id) }}" method="POST">
+                                @csrf
+                                @method('DELETE')
+
+                                <div class="modal-header bg-danger text-white">
+                                    <h5 class="modal-title">🗑️ حذف نهائي</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+
+                                <div class="modal-body">
+                                    <div class="alert alert-danger small">
+                                        سيتم حذف ملف <strong>{{ $deleteKey }}</strong> نهائيًا.<br>
+                                        هذه العملية لا يمكن التراجع عنها.
+                                    </div>
+
+                                    <label class="fw-bold small">
+                                        اكتب اسم الرياضي لتأكيد الحذف:
+                                    </label>
+                                    <input type="text"
+                                           class="form-control mt-1 delete-club-confirm-input"
+                                           data-club-name="{{ $deleteKey }}"
+                                           data-confirm-btn="#btnConfirmDeleteDossier{{ $d->id }}"
+                                           placeholder="{{ $deleteKey }}"
+                                           autocomplete="off">
+                                </div>
+
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                    <button type="submit"
+                                            id="btnConfirmDeleteDossier{{ $d->id }}"
+                                            class="btn btn-danger"
+                                            disabled>
+                                        حذف نهائي
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                @endif
 
                 <div class="modal fade" id="noteModal{{ $d->id }}" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
@@ -275,4 +340,23 @@ table thead th {
 @endpush
 @push('js')
 @include('admin.partials.datatable-script', ['tableId' => '#dossiersTable'])
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.delete-club-confirm-input').forEach(function (input) {
+        const btn = document.querySelector(input.dataset.confirmBtn);
+        if (!btn) return;
+        const expected = (input.dataset.clubName || '').trim();
+
+        input.addEventListener('input', function () {
+            btn.disabled = input.value.trim() !== expected;
+        });
+
+        input.closest('.modal').addEventListener('hidden.bs.modal', function () {
+            input.value = '';
+            btn.disabled = true;
+        });
+    });
+});
+</script>
 @endpush
