@@ -1,4 +1,4 @@
-<form action="{{ route('profile.step.save', 2) }}" method="POST">
+<form action="{{ route('profile.step.save', 2) }}" method="POST" novalidate>
     @csrf
 
     <h4 class="mb-4 fw-bold">معلومات الولي</h4>

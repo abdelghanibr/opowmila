@@ -209,6 +209,8 @@ public function showStep($step)
         switch ($step) {
 
             case 1:
+                $tuteurRule = $isChild ? 'required|string|max:50' : 'nullable|string|max:50';
+
                 $validated = $request->validate([
                     'firstname' => 'required|string|max:50',
                     'lastname' => 'required|string|max:50',
@@ -217,7 +219,7 @@ public function showStep($step)
                     'blood_type' => 'nullable|string|max:5',
                     'profession' => 'nullable|string|max:100',
                     'handicap' => 'required' ,
-                    'tuteur_fullname' =>  'required|string|max:50',
+                    'tuteur_fullname' =>  $tuteurRule,
                 ]);
 
                 $age = Carbon::parse($request->birth_date)->age;

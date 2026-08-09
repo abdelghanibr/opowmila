@@ -123,7 +123,13 @@
     <!-- Errors -->
     @if ($errors->any())
         <div class="alert alert-danger text-right">
-            ⚠ يرجى ملء كل الحقول المطلوبة بشكل صحيح.
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <strong>⚠ يرجى ملء كل الحقول المطلوبة بشكل صحيح.</strong>
+            <ul class="mb-0 mt-1 ps-3 small">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
         </div>
     @endif
 
@@ -140,78 +146,118 @@ document.addEventListener('DOMContentLoaded', function () {
     var form = document.querySelector('.box-area form');
     if (!form) return;
 
-    var labels = {
-        'firstname': 'الاسم',
-        'lastname': 'اللقب',
-        'birth_date': 'تاريخ الميلاد',
-        'gender': 'الجنس',
-        'handicap': 'الاحتياجات الخاصة',
-        'tuteur_fullname': 'اسم الأب',
-        'parent_firstname': 'اسم الولي',
-        'parent_lastname': 'لقب الولي',
-        'parent_phone': 'رقم هاتف الولي',
-        'phone': 'رقم الهاتف',
-        'address': 'العنوان',
-        'education': 'الفئة داخل النادي / المؤسسة',
-        'photo': 'الصورة الشمسية',
-        'medical_certificate': 'الشهادة الطبية',
-        'engagement': 'التعهد',
-        'birth_certificate': 'شهادة الميلاد',
-        'parental_authorization': 'التصريح الأبوي',
-        'guardian_id_card': 'بطاقة الولي',
-        'national_id_card': 'بطاقة التعريف الوطنية'
+    // Règles de validation par champ (libellé arabe + message)
+    var RULES = {
+        'firstname':       { msg: '⚠ الاسم مطلوب' },
+        'lastname':        { msg: '⚠ اللقب مطلوب' },
+        'birth_date':      { msg: '⚠ تاريخ الميلاد مطلوب' },
+        'gender':          { msg: '⚠ يرجى اختيار الجنس' },
+        'handicap':        { msg: '⚠ يرجى الإجابة على السؤال' },
+        'tuteur_fullname': { msg: '⚠ اسم الأب مطلوب' },
+        'parent_firstname':{ msg: '⚠ اسم الولي مطلوب' },
+        'parent_lastname': { msg: '⚠ لقب الولي مطلوب' },
+        'parent_phone':    { msg: '⚠ رقم هاتف الولي مطلوب' },
+        'phone':           { msg: '⚠ رقم الهاتف مطلوب' },
+        'address':         { msg: '⚠ العنوان مطلوب' },
+        'education':       { msg: '⚠ يرجى اختيار الفئة' }
     };
 
-    function markField(input, ok) {
-        var group = input.closest('.mb-3') || input.closest('.col-lg-5') || input.closest('.col-12');
+    function groupOf(el) {
+        return el.closest('.mb-3') || el.closest('.col-lg-5') || el.closest('.col-12');
+    }
+
+    function clearField(el) {
+        var group = groupOf(el);
         if (!group) return;
         group.classList.remove('has-missing');
-        var existing = group.querySelector('.js-missing-hint');
-        if (existing) existing.remove();
-        input.classList.remove('is-invalid');
+        var hint = group.querySelector('.js-field-hint');
+        if (hint) hint.remove();
+        if (el.classList) el.classList.remove('is-invalid');
+        var g2 = group.querySelectorAll('input');
+        if (g2.length <= 1) { el.classList.remove('is-valid'); }
+    }
+
+    // Valide UN champ, retourne true/false
+    function validateField(el) {
+        var name = el.name;
+        if (!RULES[name]) return true;
+        if (el.type === 'radio') {
+            var group = form.querySelectorAll('input[name="' + name + '"]');
+            var checked = Array.prototype.some.call(group, function (r) { return r.checked; });
+            group.forEach(function (r) {
+                clearField(r);
+                if (!checked) {
+                    var g = groupOf(r);
+                    g.classList.add('has-missing');
+                    g.querySelectorAll('input').forEach(function (x) { x.classList.add('is-invalid'); });
+                    addHint(g, RULES[name].msg);
+                }
+            });
+            return checked;
+        }
+        if (el.type === 'hidden' || el.type === 'file') return true;
+
+        var val = (el.value || '').trim();
+        var ok = val !== '';
+        clearField(el);
         if (!ok) {
-            group.classList.add('has-missing');
-            input.classList.add('is-invalid');
-            var hint = document.createElement('div');
-            hint.className = 'text-danger small fw-bold mt-1 js-missing-hint';
-            hint.textContent = '⚠ هذا الحقل مطلوب';
+            var g = groupOf(el);
+            if (g) {
+                g.classList.add('has-missing');
+                el.classList.add('is-invalid');
+                addHint(g, RULES[name].msg);
+            }
+        } else {
+            el.classList.add('is-valid');
+        }
+        return ok;
+    }
+
+    function addHint(group, message) {
+        var hint = group.querySelector('.js-field-hint');
+        if (!hint) {
+            hint = document.createElement('div');
+            hint.className = 'text-danger small fw-bold mt-1 js-field-hint';
             group.appendChild(hint);
         }
+        hint.textContent = message;
     }
 
-    function visible(el) {
-        return el.offsetParent !== null || el.tagName === 'INPUT' && el.type === 'hidden';
-    }
+    // ✅ Validation en temps réel : dès qu'on quitte un champ (blur)
+    form.addEventListener('blur', function (e) {
+        var el = e.target;
+        if (el.name && RULES[el.name]) validateField(el);
+    }, true);
 
+    // ✅ Efface l'erreur dès que l'utilisateur corrige
+    form.addEventListener('input', function (e) {
+        var el = e.target;
+        if (el.name && RULES[el.name] && (el.value || '').trim() !== '') {
+            clearField(el);
+        }
+    });
+    form.addEventListener('change', function (e) {
+        var el = e.target;
+        if (el.type === 'radio' && el.name && RULES[el.name]) {
+            form.querySelectorAll('input[name="' + el.name + '"]').forEach(function (r) { clearField(r); });
+            validateField(el);
+        }
+        if (el.name && RULES[el.name] && el.tagName === 'SELECT' && el.value) {
+            clearField(el);
+        }
+    });
+
+    // ✅ Soumission : vérifier tous les champs, bloquer si manquants
     form.addEventListener('submit', function (e) {
         var missing = [];
         var firstMissing = null;
 
-        form.querySelectorAll('input[name], select[name], textarea[name]').forEach(function (el) {
+        form.querySelectorAll('input[name], select[name]').forEach(function (el) {
             var name = el.name;
-            if (!labels[name]) return;
-            if (el.type === 'radio') {
-                var group = form.querySelectorAll('input[name="' + name + '"]');
-                var checked = Array.prototype.some.call(group, function (r) { return r.checked; });
-                group.forEach(function (r) { markField(r, checked); });
-                if (!checked) {
-                    missing.push(labels[name]);
-                    if (!firstMissing) firstMissing = group[0];
-                }
-                return;
-            }
-            if (el.type === 'file') return; // fichiers gérés par step4
-            if (el.type === 'hidden') return;
-
-            var isRequired = el.hasAttribute('required') || el.getAttribute('required') !== null;
-            var fieldRequired = isRequired || labels[name] && form.getAttribute('data-step') === '3' && (name === 'phone' || name === 'address');
-            if (!fieldRequired) return;
-
-            var val = el.value.trim();
-            var ok = val !== '';
-            markField(el, ok);
+            if (!RULES[name]) return;
+            var ok = validateField(el);
             if (!ok) {
-                missing.push(labels[name]);
+                missing.push(RULES[name].msg);
                 if (!firstMissing) firstMissing = el;
             }
         });
@@ -219,43 +265,16 @@ document.addEventListener('DOMContentLoaded', function () {
         if (missing.length > 0) {
             e.preventDefault();
             e.stopPropagation();
-
-            var alertBox = document.getElementById('js-missing-alert');
-            if (!alertBox) {
-                alertBox = document.createElement('div');
-                alertBox.id = 'js-missing-alert';
-                alertBox.className = 'alert alert-danger text-right';
-                alertBox.style.cssText = 'margin-bottom:15px;';
-                form.parentNode.insertBefore(alertBox, form);
-            }
-            alertBox.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> <strong>يرجى ملء الحقول التالية:</strong> ' + missing.join('، ');
-            alertBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
+            var firstGroup = firstMissing ? groupOf(firstMissing) : null;
+            if (firstGroup) firstGroup.scrollIntoView({ behavior: 'smooth', block: 'center' });
             if (firstMissing) {
                 if (firstMissing.type === 'radio') {
-                    var firstRadio = firstMissing;
-                    firstRadio.focus();
+                    var r = form.querySelector('input[name="' + firstMissing.name + '"]');
+                    if (r) r.focus();
                 } else {
                     firstMissing.focus();
                 }
             }
-        } else {
-            var alertBox = document.getElementById('js-missing-alert');
-            if (alertBox) alertBox.remove();
-        }
-    });
-
-    // Efface l'erreur dès que l'utilisateur corrige un champ
-    form.addEventListener('input', function (e) {
-        var el = e.target;
-        if (el.name && labels[el.name] && el.value.trim() !== '') {
-            markField(el, true);
-        }
-    });
-    form.addEventListener('change', function (e) {
-        var el = e.target;
-        if (el.type === 'radio' && el.name && labels[el.name] && el.checked) {
-            form.querySelectorAll('input[name="' + el.name + '"]').forEach(function (r) { markField(r, true); });
         }
     });
 });
