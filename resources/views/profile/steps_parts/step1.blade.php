@@ -10,7 +10,8 @@
             <label class="form-label">الاسم</label>
             <input type="text" name="firstname"
                    class="form-control @error('firstname') is-invalid @enderror"
-                   value="{{ old('firstname', $person->firstname ?? '') }}">
+                   value="{{ old('firstname', $person->firstname ?? '') }}"
+                   required>
             @error('firstname')
                 <div class="form-error text-danger small">{{ $message }}</div>
             @enderror
@@ -21,7 +22,8 @@
             <label class="form-label">اللقب</label>
             <input type="text" name="lastname"
                    class="form-control @error('lastname') is-invalid @enderror"
-                   value="{{ old('lastname', $person->lastname ?? '') }}">
+                   value="{{ old('lastname', $person->lastname ?? '') }}"
+                   required>
             @error('lastname')
                 <div class="form-error text-danger small">{{ $message }}</div>
             @enderror
@@ -34,7 +36,8 @@
             <input type="text"
                    name="tuteur_fullname"
                    class="form-control @error('tuteur_fullname') is-invalid @enderror"
-                   value="{{ old('tuteur_fullname', $person->tuteur_fullname ?? '') }}">
+                   value="{{ old('tuteur_fullname', $person->tuteur_fullname ?? '') }}"
+                   required>
 
             @error('tuteur_fullname')
                 <div class="form-error text-danger small">{{ $message }}</div>
@@ -47,7 +50,8 @@
             <label class="form-label">تاريخ الميلاد</label>
             <input type="text" name="birth_date"
                    class="form-control js-date-fr @error('birth_date') is-invalid @enderror"
-                   value="{{ old('birth_date', $person->birth_date ?? '') }}">
+                   value="{{ old('birth_date', $person->birth_date ?? '') }}"
+                   required>
             @error('birth_date')
                 <div class="form-error text-danger small">{{ $message }}</div>
             @enderror
@@ -59,13 +63,15 @@
 
     <label class="ms-3">
         <input type="radio" name="gender" value="H"
-               {{ old('gender', $person->gender ?? '') == 'H' ? 'checked' : '' }}>
+               {{ old('gender', $person->gender ?? '') == 'H' ? 'checked' : '' }}
+               required>
         ذكر
     </label>
 
     <label class="ms-3">
         <input type="radio" name="gender" value="F"
-               {{ old('gender', $person->gender ?? '') == 'F' ? 'checked' : '' }}>
+               {{ old('gender', $person->gender ?? '') == 'F' ? 'checked' : '' }}
+               required>
         أنثى
     </label>
 
@@ -81,13 +87,15 @@
 
             <label class="ms-3">
                 <input type="radio" name="handicap" value="1"
-                {{ old('handicap', $person->handicap ?? '') == 1 ? 'checked' : '' }}>
+                {{ old('handicap', $person->handicap ?? '') == 1 ? 'checked' : '' }}
+                required>
                 نعم
             </label>
 
             <label class="ms-3">
                 <input type="radio" name="handicap" value="0"
-                {{ old('handicap', $person->handicap ?? '') == 0 ? 'checked' : '' }}>
+                {{ old('handicap', $person->handicap ?? '') == 0 ? 'checked' : '' }}
+                required>
                 لا
             </label>
 
@@ -113,6 +121,7 @@
         </div>
 
         <!-- المهنة -->
+        @if(!($isChild ?? false))
         <div class="col-md-6 mb-3">
             <label class="form-label fw-bold" style="color:#082f57; font-size:0.92rem;">
                 <i class="fa-solid fa-briefcase" style="color:#12a86b; margin-left:6px;"></i>المهنة
@@ -131,6 +140,7 @@
                 <div class="form-error text-danger small">{{ $message }}</div>
             @enderror
         </div>
+        @endif
 
     </div>
 

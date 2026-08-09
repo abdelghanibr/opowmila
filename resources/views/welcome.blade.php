@@ -882,11 +882,80 @@
                         <i class="fa-solid fa-building"></i>
                     </div>
                     <div class="mini-nav-content">
-                        <div class="mini-nav-number">3</div>
-                        <div class="mini-nav-title">التسجيل</div>
+                        <div class="mini-nav-number">{{ $totalComplexes ?? 0 }}</div>
+                        <div class="mini-nav-title">المركبات</div>
                         <div class="mini-nav-sub">اختر المنشأة</div>
                     </div>
                 </a>
+            </div>
+
+        </div>
+
+        <div class="row g-3 mt-2 justify-content-center">
+
+            <div class="col-6 col-md-3">
+                <div class="mini-nav-card">
+                    <div class="mini-nav-icon">
+                        <i class="fa-solid fa-calendar-check"></i>
+                    </div>
+                    <div class="mini-nav-content">
+                        <div class="mini-nav-number">{{ $totalReservations ?? 0 }}</div>
+                        <div class="mini-nav-title">الحجوزات</div>
+                        <div class="mini-nav-sub">إجمالي الحجوزات</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-6 col-md-3">
+                <div class="mini-nav-card">
+                    <div class="mini-nav-icon">
+                        <i class="fa-solid fa-person-swimming"></i>
+                    </div>
+                    <div class="mini-nav-content">
+                        <div class="mini-nav-number">{{ $complexesByType['swimming'] ?? 0 }}</div>
+                        <div class="mini-nav-title">المسابح</div>
+                        <div class="mini-nav-sub">مركبات السباحة</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-6 col-md-3">
+                <div class="mini-nav-card">
+                    <div class="mini-nav-icon">
+                        <i class="fa-solid fa-futbol"></i>
+                    </div>
+                    <div class="mini-nav-content">
+                        <div class="mini-nav-number">{{ $complexesByType['stadium'] ?? 0 }}</div>
+                        <div class="mini-nav-title">الملاعب</div>
+                        <div class="mini-nav-sub">الملاعب الرياضية</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-6 col-md-3">
+                <div class="mini-nav-card">
+                    <div class="mini-nav-icon">
+                        <i class="fa-solid fa-dumbbell"></i>
+                    </div>
+                    <div class="mini-nav-content">
+                        <div class="mini-nav-number">{{ $complexesByType['hall'] ?? 0 }}</div>
+                        <div class="mini-nav-title">القاعات</div>
+                        <div class="mini-nav-sub">القاعات الرياضية</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-6 col-md-3">
+                <div class="mini-nav-card">
+                    <div class="mini-nav-icon">
+                        <i class="fa-solid fa-person-running"></i>
+                    </div>
+                    <div class="mini-nav-content">
+                        <div class="mini-nav-number">{{ $totalActivities ?? 0 }}</div>
+                        <div class="mini-nav-title">الأنشطة</div>
+                        <div class="mini-nav-sub">الأنشطة المتاحة</div>
+                    </div>
+                </div>
             </div>
 
         </div>

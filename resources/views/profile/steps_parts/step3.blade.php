@@ -10,7 +10,8 @@
             <label class="form-label">رقم الهاتف</label>
             <input type="text" name="phone"
                 class="form-control @error('phone') is-invalid @enderror"
-                value="{{ old('phone', $person->phone ?: (($isChild ?? false) ? ($parentPerson->phone ?? '') : '')) }}">
+                value="{{ old('phone', $person->phone ?: (($isChild ?? false) ? ($parentPerson->phone ?? '') : '')) }}"
+                required>
             @error('phone')
                 <div class="form-error text-danger small">{{ $message }}</div>
             @enderror
@@ -40,7 +41,8 @@
             <label class="form-label">العنوان</label>
             <input type="text" name="address"
                 class="form-control @error('address') is-invalid @enderror"
-                value="{{ old('address', $person->address ?: (($isChild ?? false) ? ($parentPerson->address ?? '') : '')) }}">
+                value="{{ old('address', $person->address ?: (($isChild ?? false) ? ($parentPerson->address ?? '') : '')) }}"
+                required>
             @error('address')
                 <div class="form-error text-danger small">{{ $message }}</div>
             @enderror

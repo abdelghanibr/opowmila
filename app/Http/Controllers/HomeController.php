@@ -8,6 +8,7 @@ use App\Models\Event;
 use App\Models\Activity;
 use App\Models\MatchModel;
 use App\Models\Complex;
+use App\Models\Reservation;
 use Carbon\Carbon;
 
 class HomeController extends Controller
@@ -24,9 +25,14 @@ $matchesCount = MatchModel::whereIn('status', ['scheduled', 'pending'])
     ->whereDate('match_date', '>=', Carbon::today())
     ->count();
 
+$totalReservations = Reservation::count();
+$totalActivities = Activity::count();
+$totalComplexes = Complex::count();
+$complexesByType = Complex::select('type')->get()->groupBy('type')->map->count();
 
 
-    return view('welcome', compact('news','matchesCount', 'events','activities'));
+
+    return view('welcome', compact('news','matchesCount', 'events','activities','totalReservations','totalActivities','totalComplexes','complexesByType'));
 }
 
 public function filter(Request $request)
