@@ -71,8 +71,8 @@
   <td>{{ $p->license_number }}</td>
                     {{-- الاستمارة --}}
                     <td>
-                        @if(!empty($p->attachments['registration_form']))
-                            <a href="{{ asset($p->attachments['registration_form']) }}" target="_blank"
+                        @if(!empty($p->birth_certificate))
+                            <a href="{{ $p->birth_certificate }}" target="_blank"
                                class="btn btn-sm btn-outline-success rounded-pill"
                                title="عرض الإستمارة">
                                 📄

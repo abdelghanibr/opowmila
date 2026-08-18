@@ -28,9 +28,6 @@ class ClubDossierController extends Controller
     {
         $club = Club::where('user_id', Auth::id())->firstOrFail();
 
-        $attachments = json_decode($club->attachments, true) ?? [];
-
-        // رفع الملفات
         $files = [
             'agrement',
             'statut',
@@ -42,6 +39,19 @@ class ClubDossierController extends Controller
             'minutes_meeting',
             'exploitation_request'
         ];
+
+        // التحقق من حجم الملفات (5 ميغابايت كحد أقصى)
+        $validationRules = [];
+        foreach ($files as $file) {
+            $validationRules[$file] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120';
+        }
+
+        $validated = $request->validate($validationRules, [
+            '*.max'  => '❌ حجم الملف كبير جدًا. الحد الأقصى المسموح به هو 5 ميغابايت.',
+            '*.mimes'=> '❌ صيغة الملف غير مدعومة. الأشكال المسموحة: PDF, JPG, JPEG, PNG.',
+        ]);
+
+        $attachments = json_decode($club->attachments, true) ?? [];
 if (app()->environment('local')) {
     $storagePath = storage_path('app/public');
     $storageUrl  = '/storage';

@@ -97,10 +97,22 @@
                     {{-- التصنيف --}}
                     <div class="col-md-6">
                         <label class="form-label fw-bold">التصنيف</label>
-                        <input type="text" name="study_level"
-                               class="form-control form-control-lg rounded-3"
-                               placeholder="أدخل التصنيف"
-                               value="{{ old('study_level') }}">
+                        <select name="study_level"
+                                class="form-select form-select-lg rounded-3">
+                            <option value="">— اختر التصنيف —</option>
+                            @foreach([
+                                'فئة المدارس او البراعم',
+                                'فئة اقل من 13 سنة (U13)',
+                                'فئة اقل من 16 سنة (U16)',
+                                'فئة اقل من 20 سنة (U20)',
+                                'فئة الاكابر'
+                            ] as $cat)
+                                <option value="{{ $cat }}"
+                                    {{ old('study_level')==$cat?'selected':'' }}>
+                                    {{ $cat }}
+                                </option>
+                            @endforeach
+                        </select>
                     </div>
 
                     {{-- الصورة --}}
@@ -217,54 +229,151 @@
 
 {{-- ================= JS (Vérification + Preview) ================= --}}
 <script>
-document.getElementById('photoInput').addEventListener('change', function (e) {
-    const file = e.target.files[0];
-    const msg  = document.getElementById('photoMsg');
-    if (!file) { msg.textContent = ''; return; }
+function clearFieldError(el) {
+    el.classList.remove('is-invalid');
+    var old = el.parentNode.querySelector('.invalid-feedback');
+    if (old) old.remove();
+}
+function setFieldError(el, msg) {
+    el.classList.add('is-invalid');
+    if (!el.parentNode.querySelector('.invalid-feedback')) {
+        var div = document.createElement('div');
+        div.className = 'invalid-feedback d-block';
+        div.style.fontSize = '13px';
+        div.style.marginTop = '4px';
+        div.textContent = msg;
+        el.parentNode.appendChild(div);
+    }
+}
 
-    const allowed = ['image/jpeg', 'image/png'];
+function validateName(field) {
+    clearFieldError(field);
+    var v = field.value.trim();
+    if (!v) { setFieldError(field, 'هذا الحقل مطلوب'); return false; }
+    if (v.length < 2) { setFieldError(field, '2 أحرف على الأقل'); return false; }
+    if (!/^[A-Za-z\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF\s'-]+$/.test(v)) {
+        setFieldError(field, 'حرف غير مسموح'); return false;
+    }
+    return true;
+}
+
+function validateBirthDate(field) {
+    clearFieldError(field);
+    var v = field.value.trim();
+    if (!v) { setFieldError(field, 'تاريخ الميلاد مطلوب'); return false; }
+    var parts;
+    if (v.indexOf('/') !== -1) {
+        parts = v.split('/');
+        var d = parseInt(parts[0]), m = parseInt(parts[1]), y = parseInt(parts[2]);
+    } else if (v.indexOf('-') !== -1) {
+        parts = v.split('-');
+        var y = parseInt(parts[0]), m = parseInt(parts[1]), d = parseInt(parts[2]);
+    } else {
+        setFieldError(field, 'تاريخ غير صالح'); return false;
+    }
+    if (parts.length !== 3 || isNaN(d) || isNaN(m) || isNaN(y)) {
+        setFieldError(field, 'تاريخ غير صالح'); return false;
+    }
+    if (m < 1 || m > 12 || d < 1 || d > 31 || y < 1900) {
+        setFieldError(field, 'تاريخ غير صالح'); return false;
+    }
+    var date = new Date(y, m - 1, d);
+    var minDate = new Date();
+    minDate.setFullYear(minDate.getFullYear() - 3);
+    if (date > minDate) { setFieldError(field, 'يجب أن يكون عمر الشخص 3 سنوات على الأقل'); return false; }
+    return true;
+}
+
+function validateSelect(field) {
+    clearFieldError(field);
+    if (!field.value) { setFieldError(field, 'الرجاء الاختيار'); return false; }
+    return true;
+}
+
+function validateText(field, required, maxLen) {
+    clearFieldError(field);
+    var v = field.value.trim();
+    if (required && !v) { setFieldError(field, 'هذا الحقل مطلوب'); return false; }
+    if (v && maxLen && v.length > maxLen) { setFieldError(field, 'الحد الأقصى ' + maxLen + ' حرف'); return false; }
+    return true;
+}
+
+function validatePhoto(fileInput) {
+    var msg = document.getElementById('photoMsg');
+    clearFieldError(fileInput);
+    msg.textContent = '';
+    var file = fileInput.files[0];
+    if (!file) return true;
+    var allowed = ['image/jpeg', 'image/png'];
     if (!allowed.includes(file.type)) {
+        setFieldError(fileInput, 'يجب أن تكون JPG أو PNG');
         msg.textContent = '❌ الصورة يجب أن تكون JPG أو PNG';
         msg.style.color = '#dc3545';
-        this.value = '';
-        return;
+        fileInput.value = '';
+        return false;
     }
     if (file.size > 2 * 1024 * 1024) {
+        setFieldError(fileInput, 'الحجم يتجاوز 2MB');
         msg.textContent = '❌ الحجم يتجاوز 2MB';
         msg.style.color = '#dc3545';
-        this.value = '';
-        return;
+        fileInput.value = '';
+        return false;
     }
-
     msg.textContent = '✅ ' + file.name;
     msg.style.color = '#198754';
-
-    const reader = new FileReader();
+    var reader = new FileReader();
     reader.onload = function (ev) {
         document.getElementById('photoPreview').src = ev.target.result;
     };
     reader.readAsDataURL(file);
-});
+    return true;
+}
 
-document.getElementById('pdfInput').addEventListener('change', function (e) {
-    const file = e.target.files[0];
-    const nameEl = document.getElementById('pdfName');
-    if (!file) { nameEl.textContent = ''; return; }
-
+function validatePDF(fileInput) {
+    var nameEl = document.getElementById('pdfName');
+    clearFieldError(fileInput);
+    nameEl.textContent = '';
+    var file = fileInput.files[0];
+    if (!file) return true;
     if (file.type !== 'application/pdf') {
+        setFieldError(fileInput, 'يجب أن يكون ملف PDF');
         nameEl.textContent = '❌ الملف يجب أن يكون PDF';
         nameEl.style.color = '#dc3545';
-        this.value = '';
-        return;
+        fileInput.value = '';
+        return false;
     }
     if (file.size > 3 * 1024 * 1024) {
+        setFieldError(fileInput, 'الحجم يتجاوز 3MB');
         nameEl.textContent = '❌ الحجم يتجاوز 3MB';
         nameEl.style.color = '#dc3545';
-        this.value = '';
-        return;
+        fileInput.value = '';
+        return false;
     }
     nameEl.textContent = '✅ ' + file.name + ' (' + (file.size / 1024 / 1024).toFixed(2) + ' MB)';
     nameEl.style.color = '#198754';
+    return true;
+}
+
+document.getElementById('photoInput').addEventListener('change', function () { validatePhoto(this); });
+document.getElementById('pdfInput').addEventListener('change', function () { validatePDF(this); });
+
+document.querySelector('form').addEventListener('submit', function (e) {
+    var ok = true;
+
+    if (!validateName(document.querySelector('[name="firstname"]'))) ok = false;
+    if (!validateName(document.querySelector('[name="lastname"]'))) ok = false;
+    if (!validateBirthDate(document.querySelector('[name="birth_date"]'))) ok = false;
+    if (!validateText(document.querySelector('[name="license_number"]'), true, 50)) ok = false;
+    if (!validateSelect(document.querySelector('[name="gender"]'))) ok = false;
+    if (!validateSelect(document.querySelector('[name="education"]'))) ok = false;
+    if (!validatePhoto(document.getElementById('photoInput'))) ok = false;
+    if (!validatePDF(document.getElementById('pdfInput'))) ok = false;
+
+    if (!ok) {
+        e.preventDefault();
+        var first = document.querySelector('.is-invalid');
+        if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
 });
 </script>
 @endsection

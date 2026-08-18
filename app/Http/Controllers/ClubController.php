@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Person;
 use App\Models\Reservation;
 use App\Models\Schedule;
+use App\Models\Complex;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request; 
@@ -25,20 +26,22 @@ class ClubController extends Controller
 
     // إذا كان للمدير مجمع معيّن → اجلب فقط الأندية التابعة له
     if (!empty($admin->complex_id) && $admin->complex_id != 0) {
-        $clubs = Club::with('user')
+        $clubs = Club::with(['user', 'user.complex'])
             ->whereHas('user', function ($q) use ($admin) {
                 $q->where('complex_id', $admin->complex_id);
             })
             ->orderByDesc('id')
             ->get();
+        $complexes = Complex::where('id', $admin->complex_id)->get();
     } else {
         // إذا لا يوجد مجمع → اظهر جميع الأندية
-        $clubs = Club::with('user')
+        $clubs = Club::with(['user', 'user.complex'])
             ->orderByDesc('id')
             ->get();
+        $complexes = Complex::orderBy('nom')->get();
     }
 
-    return view('admin.clubs.index', compact('clubs'));
+    return view('admin.clubs.index', compact('clubs', 'complexes'));
 }
 
 
@@ -74,10 +77,6 @@ class ClubController extends Controller
     public function destroy($id)
     {
         $club = Club::findOrFail($id);
-
-        if ($club->etat === 'approved') {
-            return back()->with('error', '❌ لا يمكن حذف نادٍ مقبول (approved).');
-        }
 
         $userId = $club->user_id;
 

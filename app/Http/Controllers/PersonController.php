@@ -145,7 +145,7 @@ public function updateAssurance(Request $request)
         'birth_date' => 'required|date|before_or_equal:' . now()->subYears(3)->format('Y-m-d'),
         'gender'     => 'required|in:ذكر,أنثى',
         'education'  => 'required|string|max:50',
-        'study_level' => 'nullable|string|max:100',
+        'study_level' => 'nullable|string|max:100|in:فئة المدارس او البراعم,فئة اقل من 13 سنة (U13),فئة اقل من 16 سنة (U16),فئة اقل من 20 سنة (U20),فئة الاكابر',
         'photo'      => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         'registration_form_pdf' => 'nullable|file|mimes:pdf|max:3072',
     ];
@@ -188,7 +188,7 @@ public function updateAssurance(Request $request)
     }
 
     /* ===== Upload Registration Form PDF ===== */
-    $attachments = [];
+    $birthCertificatePath = null;
 
     if ($request->hasFile('registration_form_pdf')) {
 
@@ -202,7 +202,7 @@ public function updateAssurance(Request $request)
         $pdfFilename = uniqid('form_') . '.' . $pdfFile->getClientOriginalExtension();
         $pdfFile->move($pdfDir, $pdfFilename);
 
-        $attachments['registration_form'] = $storageUrl . '/pdfs/persons/' . $pdfFilename;
+        $birthCertificatePath = $storageUrl . '/pdfs/persons/' . $pdfFilename;
     }
 
     /* ===== Create Person ===== */
@@ -215,7 +215,7 @@ public function updateAssurance(Request $request)
     $person->education  = $validated['education'];
     $person->study_level = $validated['study_level'] ?? null;
     $person->photo      = $photoPath;
-    $person->attachments = !empty($attachments) ? json_encode($attachments, JSON_UNESCAPED_UNICODE) : null;
+    $person->birth_certificate = $birthCertificatePath;
     $person->license_number = $validated['license_number'] ?? null;
 
     /* ===== Link to Club (Club or Company) ===== */
@@ -292,7 +292,7 @@ public function updateAssurance(Request $request)
         'birth_date' => 'required|date|before_or_equal:' . now()->subYears(3)->format('Y-m-d'),
         'gender'     => 'required|in:ذكر,أنثى',
         'education'   => 'required|string|max:50',
-        'study_level' => 'nullable|string|max:100',
+        'study_level' => 'nullable|string|max:100|in:فئة المدارس او البراعم,فئة اقل من 13 سنة (U13),فئة اقل من 16 سنة (U16),فئة اقل من 20 سنة (U20),فئة الاكابر',
         'photo'      => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         'registration_form_pdf' => 'nullable|file|mimes:pdf|max:3072',
     ];
@@ -359,12 +359,8 @@ public function updateAssurance(Request $request)
     /* ===== Update registration form PDF (only if changed) ===== */
     if ($request->hasFile('registration_form_pdf')) {
 
-        $attachments = is_array($person->attachments)
-            ? $person->attachments
-            : json_decode($person->attachments, true) ?? [];
-
-        if (!empty($attachments['registration_form'])) {
-            $oldPdfRelative = str_replace('/storage', '', $attachments['registration_form']);
+        if ($person->birth_certificate) {
+            $oldPdfRelative = str_replace('/storage', '', $person->birth_certificate);
             $oldPdfFull = $storagePath . $oldPdfRelative;
 
             if (file_exists($oldPdfFull)) {
@@ -381,10 +377,8 @@ public function updateAssurance(Request $request)
         $pdfFilename = uniqid('form_') . '.' . $pdfFile->getClientOriginalExtension();
         $pdfFile->move($pdfDir, $pdfFilename);
 
-        $attachments['registration_form'] = $storageUrl . '/pdfs/persons/' . $pdfFilename;
-
         $person->update([
-            'attachments' => json_encode($attachments, JSON_UNESCAPED_UNICODE)
+            'birth_certificate' => $storageUrl . '/pdfs/persons/' . $pdfFilename,
         ]);
     }
 
@@ -425,23 +419,30 @@ public function destroy($id)
     $authUser = Auth::user();
     $person   = Person::findOrFail($id);
 
-    if ($person->user_id !== $authUser->id) {
+    if ((int)$person->user_id !== (int)$authUser->id) {
         abort(403);
     }
-
-    $linkedUser = User::find($person->user_id);
 
     // récupérer les dossiers liés à la personne
     $dossiers = Dossier::where('person_id', $person->id)->get();
 
-    // préparer la liste des fichiers à supprimer
+    // préparer la liste des fichiers physiques à supprimer
     $filesToDelete = [];
 
+    // photo de la personne
+    if (!empty($person->photo)) {
+        $filesToDelete[] = $person->photo;
+    }
+
+    // PDF / استمارة
+    if (!empty($person->birth_certificate)) {
+        $filesToDelete[] = $person->birth_certificate;
+    }
+
+    // fichiers des dossiers liés
     foreach ($dossiers as $dossier) {
         if (!empty($dossier->attachments)) {
             $attachments = json_decode($dossier->attachments, true);
-
-            // si attachments est un JSON contenant plusieurs fichiers
             if (is_array($attachments)) {
                 foreach ($attachments as $file) {
                     if (!empty($file)) {
@@ -449,34 +450,30 @@ public function destroy($id)
                     }
                 }
             } else {
-                // si attachments contient un seul chemin
                 $filesToDelete[] = $dossier->attachments;
             }
         }
     }
 
-    DB::transaction(function () use ($dossiers, $person, $linkedUser) {
-        // supprimer les dossiers
+    DB::transaction(function () use ($dossiers, $person) {
         foreach ($dossiers as $dossier) {
             $dossier->delete();
         }
-
-        // supprimer la personne
         $person->delete();
-
-        // supprimer l'utilisateur lié dans users
-        if ($linkedUser) {
-            $linkedUser->delete();
-        }
     });
 
-    // supprimer les fichiers physiques après suppression des lignes
+    // supprimer les fichiers physiques
     foreach ($filesToDelete as $filePath) {
-        if (Storage::disk('public')->exists($filePath)) {
-            Storage::disk('public')->delete($filePath);
+        $localPath = str_replace('/storage', '', $filePath);
+        $fullPath = app()->environment('local')
+            ? storage_path('app/public' . $localPath)
+            : rtrim(env('PUBLIC_STORAGE_PATH'), '/') . $localPath;
+
+        if (file_exists($fullPath)) {
+            unlink($fullPath);
         }
     }
 
-    return back()->with('success', '✅ Utilisateur, personne, dossiers et fichiers supprimés avec succès.');
+    return back()->with('success', '✅ تم حذف الشخص وجميع ملفاته بنجاح.');
 }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Dossier;
+use App\Models\Complex;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -263,7 +264,7 @@ public function index(Request $request)
    // $query = Dossier::query()->with('person');
     
     $query = Dossier::query()
-    ->with('person')
+    ->with('person.user', 'person.complex')
     ->whereNotNull('attachments')
     ->where('attachments', '<>', '')
     ->where('attachments', '<>', '[]');
@@ -283,12 +284,14 @@ public function index(Request $request)
     }
 
     // 🎯 تصفية حسب complex_id إذا كان admin مرتبط بمجمع
-    if (!empty($admin->complex_id) && $admin->complex_id != 0) {
+    $assignedComplexId = (!empty($admin->complex_id) && (int) $admin->complex_id !== 0)
+        ? (int) $admin->complex_id
+        : null;
 
-        $query->whereHas('person.user', function ($q) use ($admin) {
-            $q->where('complex_id', $admin->complex_id);
+    if ($assignedComplexId) {
+        $query->whereHas('person.user', function ($q) use ($assignedComplexId) {
+            $q->where('complex_id', $assignedComplexId);
         });
-
     }
 
     // 🔥 تنفيذ جلب النتائج مع pagination
@@ -301,7 +304,12 @@ public function index(Request $request)
             : null;
     });
 
-    return view('admin.dossiers.index', compact('dossiers'));
+    // 🏟️ قائمة المجمعات : admin عام (complex_id فارغ/0) → الكل، sinon مجمعه فقط
+    $complexes = $assignedComplexId
+        ? Complex::where('id', $assignedComplexId)->orderBy('nom')->get()
+        : Complex::orderBy('nom')->get();
+
+    return view('admin.dossiers.index', compact('dossiers', 'complexes', 'assignedComplexId'));
 }
 
 

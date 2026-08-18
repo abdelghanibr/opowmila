@@ -33,6 +33,18 @@
                placeholder="بحث بالحساب">
     </div>
 
+    @if(empty($assignedComplexId))
+    <div class="col-md-3">
+        <label class="form-label fw-bold small">المركب</label>
+        <select id="filterComplex" class="form-select form-select-sm">
+            <option value="">كل المجمعات</option>
+            @foreach($complexes ?? [] as $complex)
+                <option value="{{ $complex->id }}">{{ $complex->nom }}</option>
+            @endforeach
+        </select>
+    </div>
+    @endif
+
     <div class="col-md-3">
         <label class="form-label fw-bold small">العمر</label>
         <input type="number" id="filterAge"
@@ -53,6 +65,7 @@
                     <th>#</th>
                     <th>صاحب الملف</th>
                     <th>الحساب</th>
+                    <th>المركب</th>
                     <th>العمر</th>
                     <th>الحالة</th>
                     <th>التاريخ</th>
@@ -74,6 +87,8 @@
 
                     $files = json_decode($d->attachments, true) ?? [];
 
+                    $complex = $d->person->complex ?? optional($d->person->user)->complex;
+
                     $deleteKey = trim(($d->person->firstname ?? '') . ' ' . ($d->person->lastname ?? ''));
                     if ($deleteKey === '') {
                         $deleteKey = $d->person->user->name ?? ('ملف#' . $d->id);
@@ -90,7 +105,7 @@
                     ];
                 @endphp
 
-                <tr>
+                <tr data-complex="{{ $complex->id ?? '' }}">
                     <td>{{ $d->id }}</td>
 
                     <td class="fw-semibold small">
@@ -99,6 +114,17 @@
                     </td>
 
                     <td class="small">{{ $d->person->user->name ?? '—' }}</td>
+
+                    {{-- المركب --}}
+                    <td class="small">
+                        @if($complex)
+                            <span class="badge bg-primary-subtle text-primary">
+                                {{ $complex->nom }}
+                            </span>
+                        @else
+                            <span class="text-muted">—</span>
+                        @endif
+                    </td>
 
                     {{-- العمر --}}
                     <td>
@@ -339,7 +365,7 @@ table thead th {
 </style>
 @endpush
 @push('js')
-@include('admin.partials.datatable-script', ['tableId' => '#dossiersTable'])
+@include('admin.partials.datatable-script', ['tableId' => '#dossiersTable', 'colEtat' => 5, 'colOwner' => 1, 'colAccount' => 2, 'colAge' => 4])
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -359,4 +385,25 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
+
+@if(empty($assignedComplexId))
+<script>
+$(document).ready(function () {
+    let table = $('#dossiersTable').DataTable();
+
+    $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+        const filterComplex = $('#filterComplex').val();
+        if (filterComplex === '') return true;
+
+        const rowNode = table.row(dataIndex).node();
+        const rowComplex = $(rowNode).data('complex') ?? '';
+        return String(rowComplex) === String(filterComplex);
+    });
+
+    $('#filterComplex').on('change', function () {
+        table.draw();
+    });
+});
+</script>
+@endif
 @endpush

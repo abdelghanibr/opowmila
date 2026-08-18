@@ -451,7 +451,7 @@ public function programmeHebdo(Request $request, $id)
      */
     public function dossiersIndex()
     {
-        $dossiers = Dossier::with('person.user')->latest()->get();
+        $dossiers = Dossier::with('person.user', 'person.complex')->latest()->get();
         return view('admin.dossiers.index', compact('dossiers'));
     }
 
