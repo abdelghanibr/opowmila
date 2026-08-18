@@ -145,7 +145,9 @@ public function updateAssurance(Request $request)
         'birth_date' => 'required|date|before_or_equal:' . now()->subYears(3)->format('Y-m-d'),
         'gender'     => 'required|in:ذكر,أنثى',
         'education'  => 'required|string|max:50',
+        'study_level' => 'nullable|string|max:100',
         'photo'      => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+        'registration_form_pdf' => 'nullable|file|mimes:pdf|max:3072',
     ];
 
     // 2️⃣ شرط رقم الإجازة إذا كان المستخدم نادي فقط
@@ -158,18 +160,19 @@ public function updateAssurance(Request $request)
     // 3️⃣ تنفيذ التحقق
     $validated = $request->validate($rules);
 
-    /* ===== Upload Photo (Local / Production) ===== */
+    /* ===== Storage path (Local / Production) ===== */
+    if (app()->environment('local')) {
+        $storagePath = storage_path('app/public');
+        $storageUrl  = '/storage';
+    } else {
+        $storagePath = rtrim(env('PUBLIC_STORAGE_PATH'), '/');
+        $storageUrl  = rtrim(env('PUBLIC_STORAGE_URL'), '/');
+    }
+
+    /* ===== Upload Photo ===== */
     $photoPath = null;
 
     if ($request->hasFile('photo')) {
-
-        if (app()->environment('local')) {
-            $storagePath = storage_path('app/public');
-            $storageUrl  = '/storage';
-        } else {
-            $storagePath = rtrim(env('PUBLIC_STORAGE_PATH'), '/');
-            $storageUrl  = rtrim(env('PUBLIC_STORAGE_URL'), '/');
-        }
 
         $directory = $storagePath . '/photos/persons';
 
@@ -184,6 +187,24 @@ public function updateAssurance(Request $request)
         $photoPath = $storageUrl . '/photos/persons/' . $filename;
     }
 
+    /* ===== Upload Registration Form PDF ===== */
+    $attachments = [];
+
+    if ($request->hasFile('registration_form_pdf')) {
+
+        $pdfDir = $storagePath . '/pdfs/persons';
+
+        if (!is_dir($pdfDir)) {
+            mkdir($pdfDir, 0755, true);
+        }
+
+        $pdfFile     = $request->file('registration_form_pdf');
+        $pdfFilename = uniqid('form_') . '.' . $pdfFile->getClientOriginalExtension();
+        $pdfFile->move($pdfDir, $pdfFilename);
+
+        $attachments['registration_form'] = $storageUrl . '/pdfs/persons/' . $pdfFilename;
+    }
+
     /* ===== Create Person ===== */
     $person = new Person();
     $person->user_id    = $user->id;
@@ -192,7 +213,9 @@ public function updateAssurance(Request $request)
     $person->birth_date = $validated['birth_date'];
     $person->gender     = $validated['gender'];
     $person->education  = $validated['education'];
+    $person->study_level = $validated['study_level'] ?? null;
     $person->photo      = $photoPath;
+    $person->attachments = !empty($attachments) ? json_encode($attachments, JSON_UNESCAPED_UNICODE) : null;
     $person->license_number = $validated['license_number'] ?? null;
 
     /* ===== Link to Club (Club or Company) ===== */
@@ -266,10 +289,12 @@ public function updateAssurance(Request $request)
     $rules = [
         'firstname'  => 'required|string|max:100',
         'lastname'   => 'required|string|max:100',
-      'birth_date' => 'required|date|before_or_equal:' . now()->subYears(3)->format('Y-m-d'),
+        'birth_date' => 'required|date|before_or_equal:' . now()->subYears(3)->format('Y-m-d'),
         'gender'     => 'required|in:ذكر,أنثى',
-        'education'  => 'required|string|max:50',
+        'education'   => 'required|string|max:50',
+        'study_level' => 'nullable|string|max:100',
         'photo'      => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+        'registration_form_pdf' => 'nullable|file|mimes:pdf|max:3072',
     ];
 
     // 2️⃣ شرط رقم الإجازة للنوادي فقط
@@ -299,13 +324,13 @@ public function updateAssurance(Request $request)
         'birth_date'     => $validated['birth_date'],
         'gender'         => $validated['gender'],
         'education'      => $validated['education'],
+        'study_level'    => $validated['study_level'] ?? null,
         'license_number' => $validated['license_number'] ?? null,
     ]);
 
     /* ===== Update photo (only if changed) ===== */
     if ($request->hasFile('photo')) {
 
-        // مسار الصورة القديمة مع إزالة /storage
         if ($person->photo) {
             $oldPhotoRelative = str_replace('/storage', '', $person->photo);
             $oldPhotoFull = $storagePath . $oldPhotoRelative;
@@ -315,23 +340,51 @@ public function updateAssurance(Request $request)
             }
         }
 
-        // Ensure directory exists
         $directory = $storagePath . '/photos/persons';
         if (!is_dir($directory)) {
             mkdir($directory, 0755, true);
         }
 
-        // Save new photo
         $file     = $request->file('photo');
         $filename = uniqid('person_') . '.' . $file->getClientOriginalExtension();
         $file->move($directory, $filename);
 
-        // Full URL path
         $photoPath = $storageUrl . '/photos/persons/' . $filename;
 
-        // Update DB field
         $person->update([
             'photo' => $photoPath
+        ]);
+    }
+
+    /* ===== Update registration form PDF (only if changed) ===== */
+    if ($request->hasFile('registration_form_pdf')) {
+
+        $attachments = is_array($person->attachments)
+            ? $person->attachments
+            : json_decode($person->attachments, true) ?? [];
+
+        if (!empty($attachments['registration_form'])) {
+            $oldPdfRelative = str_replace('/storage', '', $attachments['registration_form']);
+            $oldPdfFull = $storagePath . $oldPdfRelative;
+
+            if (file_exists($oldPdfFull)) {
+                unlink($oldPdfFull);
+            }
+        }
+
+        $pdfDir = $storagePath . '/pdfs/persons';
+        if (!is_dir($pdfDir)) {
+            mkdir($pdfDir, 0755, true);
+        }
+
+        $pdfFile     = $request->file('registration_form_pdf');
+        $pdfFilename = uniqid('form_') . '.' . $pdfFile->getClientOriginalExtension();
+        $pdfFile->move($pdfDir, $pdfFilename);
+
+        $attachments['registration_form'] = $storageUrl . '/pdfs/persons/' . $pdfFilename;
+
+        $person->update([
+            'attachments' => json_encode($attachments, JSON_UNESCAPED_UNICODE)
         ]);
     }
 

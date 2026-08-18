@@ -35,7 +35,8 @@ class Person extends Model
     'parent_phone',
     'parent_relation',
     'age_category_id',
-    'club_id','license_number' ,'tuteur_fullname'
+    'club_id','license_number' ,'tuteur_fullname',
+    'attachments'
 
 
      
@@ -44,6 +45,7 @@ class Person extends Model
 
     protected $casts = [
         'guardian_docs' => 'array',
+        'attachments'   => 'array',
     ];
 
     public function user()
@@ -84,6 +86,11 @@ class Person extends Model
     public function club()
     {
         return $this->belongsTo(Club::class);
+    }
+
+    public function complex()
+    {
+        return $this->belongsTo(Complex::class, 'complex_id');
     }
 
     public function ageCategory()

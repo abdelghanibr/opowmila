@@ -80,9 +80,9 @@
                         </select>
                     </div>
 
-                    {{-- التصنيف --}}
+                    {{-- صفة اللاعب --}}
                     <div class="col-md-6">
-                        <label class="form-label fw-bold">التصنيف</label>
+                        <label class="form-label fw-bold">صفة اللاعب</label>
                         <select name="education"
                                 class="form-select form-select-lg rounded-3" required>
                             <option value="">— اختر —</option>
@@ -92,6 +92,15 @@
                                 </option>
                             @endforeach
                         </select>
+                    </div>
+
+                    {{-- التصنيف --}}
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">التصنيف</label>
+                        <input type="text" name="study_level"
+                               class="form-control form-control-lg rounded-3"
+                               placeholder="أدخل التصنيف"
+                               value="{{ old('study_level') }}">
                     </div>
 
                     {{-- الصورة --}}
@@ -112,6 +121,7 @@
                                  class="rounded-circle shadow-sm"
                                  style="width:120px;height:120px;object-fit:cover;">
                         </div>
+                        <div id="photoMsg" class="text-center mt-1 fs-6"></div>
 
                         {{-- شروط الصورة --}}
                         <div class="photo-rules mt-3">
@@ -121,6 +131,27 @@
                                 <li>الصيغة JPG أو PNG</li>
                                 <li>الحجم أقل من 2MB</li>
                                 <li>صورة حديثة (≤ 6 أشهر)</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    {{-- إستمارة اللاعب PDF --}}
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">📄 إستمارة اللاعب (PDF)</label>
+
+                        <input type="file"
+                               name="registration_form_pdf"
+                               id="pdfInput"
+                               class="form-control form-control-lg rounded-3"
+                               accept="application/pdf">
+
+                        <div id="pdfName" class="mt-2 text-muted fs-6"></div>
+
+                        <div class="pdf-rules mt-3">
+                            <div class="rules-title">⭐ شروط الملف</div>
+                            <ul class="rules-list">
+                                <li>الصيغة PDF فقط</li>
+                                <li>الحجم أقل من 3MB</li>
                             </ul>
                         </div>
                     </div>
@@ -166,6 +197,14 @@
     line-height: 1.9;
 }
 
+.pdf-rules {
+    background: #fff3e6;
+    border: 1px solid #ffc98c;
+    border-radius: 14px;
+    padding: 14px 18px;
+    font-size: 14px;
+}
+
 .card {
     animation: fadeUp .5s ease-in-out;
 }
@@ -176,17 +215,56 @@
 }
 </style>
 
-{{-- ================= JS (Preview) ================= --}}
+{{-- ================= JS (Vérification + Preview) ================= --}}
 <script>
 document.getElementById('photoInput').addEventListener('change', function (e) {
     const file = e.target.files[0];
-    if (!file) return;
+    const msg  = document.getElementById('photoMsg');
+    if (!file) { msg.textContent = ''; return; }
+
+    const allowed = ['image/jpeg', 'image/png'];
+    if (!allowed.includes(file.type)) {
+        msg.textContent = '❌ الصورة يجب أن تكون JPG أو PNG';
+        msg.style.color = '#dc3545';
+        this.value = '';
+        return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+        msg.textContent = '❌ الحجم يتجاوز 2MB';
+        msg.style.color = '#dc3545';
+        this.value = '';
+        return;
+    }
+
+    msg.textContent = '✅ ' + file.name;
+    msg.style.color = '#198754';
 
     const reader = new FileReader();
-    reader.onload = function (e) {
-        document.getElementById('photoPreview').src = e.target.result;
+    reader.onload = function (ev) {
+        document.getElementById('photoPreview').src = ev.target.result;
     };
     reader.readAsDataURL(file);
+});
+
+document.getElementById('pdfInput').addEventListener('change', function (e) {
+    const file = e.target.files[0];
+    const nameEl = document.getElementById('pdfName');
+    if (!file) { nameEl.textContent = ''; return; }
+
+    if (file.type !== 'application/pdf') {
+        nameEl.textContent = '❌ الملف يجب أن يكون PDF';
+        nameEl.style.color = '#dc3545';
+        this.value = '';
+        return;
+    }
+    if (file.size > 3 * 1024 * 1024) {
+        nameEl.textContent = '❌ الحجم يتجاوز 3MB';
+        nameEl.style.color = '#dc3545';
+        this.value = '';
+        return;
+    }
+    nameEl.textContent = '✅ ' + file.name + ' (' + (file.size / 1024 / 1024).toFixed(2) + ' MB)';
+    nameEl.style.color = '#198754';
 });
 </script>
 @endsection
