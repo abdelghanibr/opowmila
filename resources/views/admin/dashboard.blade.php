@@ -916,6 +916,13 @@ body{
         <div class="count-box">{{ $clubsCount ?? 0 }}</div>
     </a>
 
+    <a href="{{ route('admin.companies.index') }}" class="dash-card">
+        <div class="dash-icon">🏢</div>
+        <h6>المؤسسات</h6>
+        <p class="dash-desc">إدارة حسابات المؤسسات المسجلة.</p>
+        <div class="count-box">{{ $companiesCount ?? 0 }}</div>
+    </a>
+
     <a href="{{ route('persons.index') }}" class="dash-card">
         <div class="dash-icon">👥</div>
         <h6>المنخرطون</h6>

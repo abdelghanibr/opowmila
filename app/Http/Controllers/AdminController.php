@@ -36,6 +36,7 @@ public function dashboard()
     {
        // $personsCount   = Person::count();
         $clubsCount     = User::where('type', 'club')->count();
+        $companiesCount = Club::where('entity_type', 'company')->count();
         $adminsCount    = User::where('type', 'admin')->count();
         $dossiersCount  = Dossier::count();
 
@@ -116,6 +117,7 @@ extract($this->buildComplexStats());
 return view('admin.dashboard', compact(
     'personsCount',
     'clubsCount',
+    'companiesCount',
     'adminsCount',
     'dossiersCount',
     'chartReservations',
@@ -313,6 +315,11 @@ public function dashboardComplex($id)
         $q->where('complex_id', $id);
     })->count();
 
+    // 🏢 المؤسسات عبر علاقة User
+    $companiesCount = Club::where('entity_type', 'company')->whereHas('user', function ($q) use ($id) {
+        $q->where('complex_id', $id);
+    })->count();
+
     // 🏋️ الأنشطة المخصصة للمجمع
     $activitiesCount = \App\Models\ComplexActivity::where('complex_id', $id)->count();
 
@@ -352,6 +359,7 @@ public function dashboardComplex($id)
         'complex',
         'dossiersCount',
         'clubsCount',
+        'companiesCount',
         'noDossierAccountsCount',
         'personsCount',
         'activitiesCount',

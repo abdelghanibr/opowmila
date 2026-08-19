@@ -149,6 +149,18 @@
             </a>
         </div>
 
+        {{-- المؤسسات --}}
+        <div class="col-md-3">
+            <a href="{{ route('admin.companies.index') }}" class="dash-card text-decoration-none">
+                <div class="dash-icon">🏢</div>
+                <div class="dash-title">المؤسسات</div>
+                <p class="dash-desc">
+                    إدارة حسابات المؤسسات المسجلة ومتابعة بياناتها وملفاتها الإدارية.
+                </p>
+                <div class="count-box">عدد المؤسسات: {{ $companiesCount ?? 0 }}</div>
+            </a>
+        </div>
+
         {{-- المنخرطين --}}
         <div class="col-md-3">
             <a href="{{ route('persons.index') }}" class="dash-card text-decoration-none">

@@ -533,6 +533,13 @@ Route::get('/admin/schedules/occupied-slots', [\App\Http\Controllers\Admin\Sched
 Route::post('admin/clubs/{id}/note', [ClubController::class, 'note'])->name('admin.clubs.note');
 Route::delete('/admin/clubs/{id}', [ClubController::class, 'destroy'])->name('admin.clubs.destroy');
 
+// entreprises
+Route::get('/admin/companies', [ClubController::class, 'companies'])->name('admin.companies.index');
+Route::get('/admin/companies/{id}/approve', [ClubController::class, 'approveCompany'])->name('admin.companies.approve');
+Route::get('/admin/companies/{id}/reject', [ClubController::class, 'rejectCompany'])->name('admin.companies.reject');
+Route::post('admin/companies/{id}/note', [ClubController::class, 'noteCompany'])->name('admin.companies.note');
+Route::delete('/admin/companies/{id}', [ClubController::class, 'destroyCompany'])->name('admin.companies.destroy');
+
 //activite et complex et pricing pla 
 // gestion des activitÃ©s
     Route::get('/admin/activities', [ActivitysController::class, 'index'])->name('admin.activities.index');
