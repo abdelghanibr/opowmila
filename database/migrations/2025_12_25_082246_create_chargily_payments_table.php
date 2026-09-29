@@ -13,20 +13,14 @@ return new class extends Migration
     {
         Schema::create('chargily_payments', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger("user_id");
+            $table->enum("status", ["pending", "paid", "failed"])->default("pending");
+            $table->string("currency");
+            $table->string("amount");
             $table->timestamps();
         });
     }
- public function up(): void
-        {
-            Schema::create('chargily_payments', function (Blueprint $table) {
-                $table->id();
-                $table->unsignedBigInteger("user_id");
-                $table->enum("status", ["pending", "paid", "failed"])->default("pending");
-                $table->string("currency");
-                $table->string("amount");
-                $table->timestamps();
-            });
-        }
+
     /**
      * Reverse the migrations.
      */

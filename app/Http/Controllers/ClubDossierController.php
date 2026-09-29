@@ -37,7 +37,8 @@ class ClubDossierController extends Controller
             'insurance_certificate',
             'rules_book',
             'minutes_meeting',
-            'exploitation_request'
+            'exploitation_request',
+            'tabri2a',
         ];
 
         // التحقق من حجم الملفات (5 ميغابايت كحد أقصى)

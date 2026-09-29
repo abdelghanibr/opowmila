@@ -1,5 +1,11 @@
 @extends('layouts.app')
 
+@php
+    $complexConflictMap = $complexes->mapWithKeys(
+        fn ($c) => [$c->id => $c->allowsTimeConflict() ? 1 : 0]
+    );
+@endphp
+
 @section('content')
 <div class="container py-5" style="direction: rtl; min-height: 100vh;">
     <div class="row justify-content-center">
@@ -312,6 +318,12 @@
                             <em>انقر واسحب فترة زرقاء لنقلها • انقر عليها للحذف • اسحب مساحة فارغة لإضافة فترة جديدة</em>
                         </div>
 
+                        <div id="conflictNotice" class="alert rounded-4 p-3 text-center mt-3 shadow-sm d-none"
+                             style="background: linear-gradient(135deg, #fef3c7, #fee2e2); border:none;">
+                            <strong>⚠️ هذا المركب يسمح بتداخل الأوقات</strong><br>
+                            يمكنك اختيار توقيت مشغول مسبقاً — لن يمنعك النظام من الحفظ.
+                        </div>
+
                         <!-- التقويم -->
                         <input type="hidden" name="time_slots" id="time_slots"
                                value="{{ old('time_slots', $schedule->time_slots) }}">
@@ -435,6 +447,20 @@ function updateHiddenField() {
     );
 }
 
+function conflictsAllowed() {
+    const complexId = document.getElementById('complex').value;
+    return String({!! json_encode($complexConflictMap) !!}[complexId] || 0) === '1';
+}
+
+function refreshConflictNotice() {
+    const notice = document.getElementById('conflictNotice');
+    if (notice) notice.classList.toggle('d-none', !conflictsAllowed());
+}
+
+function overlapMinutes(aStart, aEnd, bStart, bEnd) {
+    return aStart < bEnd && aEnd > bStart;
+}
+
 document.getElementById('type_prix').addEventListener('change', function () {
     document.getElementById('fixed_price_box').style.display = this.value === 'fix' ? 'block' : 'none';
 });
@@ -501,27 +527,35 @@ eventDidMount(info) {
             }
         },
         select(info) {
-            const conflict = calendar.getEvents().some(ev =>
-                ev.display === 'background' &&
-                info.start < ev.end &&
-                info.end > ev.start
-            );
-
-            if (conflict) {
-                alert('⛔ هذا التوقيت محجوز من جدول آخر!');
-                calendar.unselect();
-                return;
-            }
-
             const day = info.start.getDay();
             const start = info.startStr.slice(11, 16);
             const end = info.endStr.slice(11, 16);
 
-            const exists = selectedSlots.some(s => s.day_number === day && s.start === start);
-            if (exists) {
-                alert('⚠ هذه الفترة موجودة بالفعل في جدولك');
-                calendar.unselect();
-                return;
+            // 🚦 منع الاختيار حسب إعداد المركب
+            if (!conflictsAllowed()) {
+
+                const conflict = calendar.getEvents().some(ev =>
+                    ev.display === 'background' &&
+                    info.start < ev.end &&
+                    info.end > ev.start
+                );
+
+                if (conflict) {
+                    alert('⛔ هذا التوقيت محجوز من جدول آخر!');
+                    calendar.unselect();
+                    return;
+                }
+
+                // ⛔ لا تداخل بين أوقات هذا الفوج
+                const selfOverlap = selectedSlots.some(s =>
+                    s.day_number === day && overlapMinutes(s.start, s.end, start, end)
+                );
+
+                if (selfOverlap) {
+                    alert('⛔ هذا التوقيت يتداخل مع توقيت موجود بالفعل في هذا الفوج');
+                    calendar.unselect();
+                    return;
+                }
             }
 
             const newSlot = { _id: 'sel-' + (slotSeq++), day_number: day, start, end };
@@ -564,29 +598,35 @@ eventDidMount(info) {
             const start = info.event.startStr.slice(11, 16);
             const end   = info.event.endStr.slice(11, 16);
 
-            // conflit avec un bloc occupé (coloré)
-            const conflict = calendar.getEvents().some(ev =>
-                ev.display === 'background' &&
-                ev.id !== info.event.id &&
-                info.event.start < ev.end &&
-                info.event.end > ev.start
-            );
+            // 🚦 التحقق حسب إعداد المركب
+            if (!conflictsAllowed()) {
 
-            if (conflict) {
-                alert('⛔ هذا التوقيت محجوز من جدول آخر!');
-                info.revert();
-                return;
-            }
+                // conflit avec un bloc occupé (coloré)
+                const conflict = calendar.getEvents().some(ev =>
+                    ev.display === 'background' &&
+                    ev.id !== info.event.id &&
+                    info.event.start < ev.end &&
+                    info.event.end > ev.start
+                );
 
-            // doublon avec un autre slot de ce tableau
-            const exists = selectedSlots.some(s =>
-                s._id !== slot._id && s.day_number === day && s.start === start
-            );
+                if (conflict) {
+                    alert('⛔ هذا التوقيت محجوز من جدول آخر!');
+                    info.revert();
+                    return;
+                }
 
-            if (exists) {
-                alert('⚠ هذه الفترة موجودة بالفعل في جدولك');
-                info.revert();
-                return;
+                // تداخل مع توقيت آخر في نفس الفوج
+                const exists = selectedSlots.some(s =>
+                    s._id !== slot._id &&
+                    s.day_number === day &&
+                    overlapMinutes(s.start, s.end, start, end)
+                );
+
+                if (exists) {
+                    alert('⛔ هذا التوقيت يتداخل مع توقيت موجود بالفعل في هذا الفوج');
+                    info.revert();
+                    return;
+                }
             }
 
             slot.day_number = day;
@@ -618,16 +658,15 @@ eventDidMount(info) {
     function loadOccupiedSlots() {
         const complexId = document.getElementById('complex').value;
 
-        if (!complexId) {
-            calendar.getEvents().forEach(ev => {
-                if (ev.display === 'background') ev.remove();
-            });
-            return;
-        }
+        refreshConflictNotice();
 
         calendar.getEvents().forEach(ev => {
             if (ev.display === 'background') ev.remove();
         });
+
+        if (!complexId) {
+            return;
+        }
 
         fetch(`{{ route('admin.schedules.occupied') }}?complex_id=${complexId}&exclude_schedule={{ $schedule->id }}`)
             .then(res => res.json())
@@ -650,6 +689,13 @@ eventDidMount(info) {
     loadOccupiedSlots();
 
     calendar.render();
+});
+
+document.getElementById('scheduleForm').addEventListener('submit', function (e) {
+    if (selectedSlots.length === 0) {
+        e.preventDefault();
+        alert('❌ اختر توقيتاً واحداً على الأقل من التقويم قبل الحفظ');
+    }
 });
 
 // تحديث complex_activity_id

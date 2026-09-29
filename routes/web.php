@@ -53,6 +53,7 @@ use App\Http\Controllers\Admin\DeviceController;
 use App\Http\Controllers\Api\RemotePersonController;
 
 use App\Http\Controllers\PoolClosureController;
+use App\Http\Controllers\PlayerCardController;
 
 
 
@@ -245,9 +246,16 @@ Route::post('/password/reset', [ResetPasswordController::class, 'reset'])
 
 
 
+// 🔍 التحقق العام من بطاقة اللاعب (يُفتح عبر QR فقط)
+Route::get('/card/verify/{token}', [PlayerCardController::class, 'verify'])->name('card.verify');
+
 // â­ Dashboard Person
 Route::middleware(['auth','person'])->group(function () {
     Route::get('/person/dashboard', [DashboardController::class, 'index'])->name('person.dashboard');
+
+    // 🪪 بطاقة اللاعب
+    Route::get('/person/card', [PlayerCardController::class, 'show'])->name('person.card');
+    Route::get('/person/children/{person}/card', [PlayerCardController::class, 'showChild'])->name('person.children.card');
 
 Route::get('/person/profile/edit', [RegisterController::class, 'edit'])->name('person.profile.edit');
 
@@ -308,6 +316,11 @@ Route::middleware(['auth','club'])->group(function ()
         
     Route::get('/club/persons/create', [PersonController::class, 'create'])
         ->name('club.persons.create');
+ // بطاقات لاعبي النادي
+    Route::get('/club/cards', [PlayerCardController::class, 'cards'])
+        ->name('club.cards');
+    Route::get('/club/card/{person}', [PlayerCardController::class, 'memberCard'])
+        ->name('club.card');
  // profile du club
 
  Route::get('/club/profile/edit', [RegisterController::class, 'edit'])->name('club.profile.edit');
@@ -352,6 +365,12 @@ Route::middleware(['auth','entreprise'])->group(function () {
         
     Route::get('/entreprise/persons/create', [PersonController::class, 'create'])
         ->name('entreprise.persons.create'); 
+
+        // بطاقات أعضاء المؤسسة
+        Route::get('/entreprise/cards', [PlayerCardController::class, 'cards'])
+            ->name('entreprise.cards');
+        Route::get('/entreprise/card/{person}', [PlayerCardController::class, 'memberCard'])
+            ->name('entreprise.card'); 
         
         
 
@@ -407,6 +426,9 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 
     Route::post('/pool-closures/{poolClosure}/apply', [PoolClosureController::class, 'apply'])
         ->name('pool-closures.apply');
+
+    Route::post('/pool-closures/{poolClosure}/notify', [PoolClosureController::class, 'notify'])
+        ->name('pool-closures.notify');
 });
 
 
@@ -472,6 +494,11 @@ Route::resource('seat_types', SeatTypeController::class);
 Route::get('/print/persons', [PersonController::class, 'printSelected'])->name('persons.print');
 Route::post('/update-assurance', [PersonController::class, 'updateAssurance']);
 
+// 🖨️ بطاقات اللاعبين (الإدارة — كل الأنواع: فرد / نادٍ / مؤسسة)
+Route::get('/admin/cards', [PlayerCardController::class, 'adminCards'])->name('admin.cards');
+Route::get('/admin/cards/print', [PlayerCardController::class, 'adminCardsPrint'])->name('admin.cards.print');
+Route::get('/admin/cards/person/{person}', [PlayerCardController::class, 'adminCard'])->name('admin.card');
+
 
 
 Route::get('/admin/dashboard_complex/{id}', [App\Http\Controllers\AdminController::class, 'dashboardComplex'])
@@ -491,6 +518,9 @@ Route::resource('activity-categories',ActivityCategoryController::class );
 
 Route::resource('seasons', SeasonController::class);
 
+
+ Route::get('reservations/export', [\App\Http\Controllers\ReservationController::class, 'export'])
+    ->name('reservations.export');
 
  Route::resource('reservations', \App\Http\Controllers\ReservationController::class)->except(['show', 'edit', 'update']);
 
@@ -552,6 +582,7 @@ Route::delete('/admin/companies/{id}', [ClubController::class, 'destroyCompany']
 // gestion des horaires (schedules)
 Route::get('/admin/schedules', [ScheduleController::class, 'index'])->name('admin.schedules.index');
 Route::get('/admin/schedules/create', [ScheduleController::class, 'create'])->name('admin.schedules.create');
+Route::get('/admin/schedules/{id}/duplicate', [ScheduleController::class, 'duplicate'])->name('admin.schedules.duplicate');
 Route::post('/admin/schedules', [ScheduleController::class, 'store'])->name('admin.schedules.store');
 Route::get('/admin/schedules/{id}/edit', [ScheduleController::class, 'edit'])->name('admin.schedules.edit');
 Route::put('/admin/schedules/{id}', [ScheduleController::class, 'update'])->name('admin.schedules.update');

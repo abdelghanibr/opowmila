@@ -205,6 +205,9 @@
                         <a href="{{ route('admin.schedules.edit', $s->id) }}"
                            class="btn btn-warning btn-sm">✏ تعديل</a>
 
+                        <a href="{{ route('admin.schedules.duplicate', $s->id) }}"
+                           class="btn btn-info btn-sm">📋 نسخ</a>
+
                         <form action="{{ route('admin.schedules.destroy', $s->id) }}"
                               method="POST" class="d-inline">
                             @csrf
