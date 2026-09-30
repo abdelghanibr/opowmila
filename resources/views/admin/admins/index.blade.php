@@ -15,6 +15,7 @@
                 <th>#</th>
                 <th>الاسم</th>
                 <th>البريد</th>
+                <th>النوع</th>
                 <th>المجمع الرياضي</th> <!-- ⬅ عمود جديد -->
                 <th>إجراءات</th>
             </tr>
@@ -26,6 +27,19 @@
                 <td>{{ $a->id }}</td>
                 <td>{{ $a->name }}</td>
                 <td>{{ $a->email }}</td>
+
+                <!-- عرض نوع الحساب -->
+                <td>
+                    @if($a->type === 'admin')
+                        <span class="badge bg-primary">👑 مسؤول عام</span>
+                    @elseif($a->type === 'financier')
+                        <span class="badge bg-info">💰 مالي</span>
+                    @elseif($a->type === 'verificateur')
+                        <span class="badge bg-secondary">🎫 متحقق</span>
+                    @else
+                        <span class="text-muted">—</span>
+                    @endif
+                </td>
 
                 <!-- عرض اسم المجمع أو لا يوجد -->
                 <td>

@@ -18,7 +18,6 @@
 
         // 🔁 ترجمة أسماء الوثائق
         $documentsLabels = [
-            'agreement'              => 'اعتماد النادي',
             'statut'                 => 'القانون الأساسي',
             'bureau_members'         => 'قائمة أعضاء المكتب المسير',
             'coaches_certificates'   => 'شهادات المدربين',
@@ -26,7 +25,8 @@
             'insurance_certificate'  => 'شهادة التأمين الخاصة بالرياضيين والمسيرين',
             'rules_book'             => 'دفتر الشروط',
             'minutes_meeting'        => 'محضر الجمعية العامة',
-            'exploitation_request'  => 'طلب الاستغلال',
+            'exploitation_request'   => 'طلب الاستغلال',
+            'tabri2a'                => 'التبرئة',
         ];
     @endphp
 
@@ -38,7 +38,24 @@
             </tr>
         </thead>
         <tbody>
-            @forelse($files as $key => $path)
+            {{-- الإعتماد --}}
+            @if(isset($files['agrement']))
+                <tr>
+                    <td class="fw-bold">الإعتماد</td>
+                    <td>
+                        <a href="{{ asset($files['agrement']) }}"
+                           target="_blank"
+                           class="btn btn-sm btn-outline-primary">
+                            👁 عرض
+                        </a>
+                    </td>
+                </tr>
+            @endif
+
+            @foreach($files as $key => $path)
+                @if(in_array($key, ['agrement', 'agrement_recto', 'agrement_verso']) || is_numeric($key))
+                    @continue
+                @endif
                 <tr>
                     <td class="fw-bold">
                         {{ $documentsLabels[$key] ?? $key }}
@@ -51,13 +68,15 @@
                         </a>
                     </td>
                 </tr>
-            @empty
+            @endforeach
+
+            @if(empty($files))
                 <tr>
                     <td colspan="2" class="text-muted">
                         لا توجد وثائق مرفوعة بعد
                     </td>
                 </tr>
-            @endforelse
+            @endif
         </tbody>
     </table>
 

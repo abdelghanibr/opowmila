@@ -225,7 +225,7 @@
     // -------------------------
     // 🧭  Dashboard Route
     // -------------------------
-    if ($user->type === 'admin') {
+    if (in_array($user->type, ['admin', 'verificateur', 'financier'])) {
         // إذا كان لديه مجمع محدد
         if (!is_null($user->complex_id) && $user->complex_id != 0) {
             $dashboardRoute = route('admin.dashboard_complex', $user->complex_id);
@@ -248,6 +248,8 @@
     // -------------------------
     $profileRoute = match($user->type){
         'admin'      => route('admin.profile.edit'),
+        'verificateur' => route('admin.profile.edit'),
+        'financier'  => route('admin.profile.edit'),
         'club'       => route('club.profile.edit'),
         'person'     => route('person.profile.edit'),
         'company',
@@ -270,6 +272,8 @@
     // -------------------------
     $logoutRoute = match($user->type){
         'admin'      => 'admin.logout',
+        'verificateur' => 'admin.logout',
+        'financier'  => 'admin.logout',
         'club'       => 'club.logout',
         'company',
         'entreprise' => 'entreprise.logout',
@@ -298,9 +302,11 @@
                 <i class="fa-solid fa-house"></i> الرئيسية
             </a>
 
+            @if($user->type !== 'financier')
             <a href="{{ $dashboardRoute }}" class="btn btn-main btn-nav">
                 <i class="fa-solid fa-gauge"></i> لوحة التحكم
             </a>
+            @endif
 
             @if($dossierRoute !== '#')
             <a href="{{ $dossierRoute }}" class="btn btn-success btn-nav">

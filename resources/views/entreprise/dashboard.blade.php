@@ -354,6 +354,10 @@ body{
             <a href="{{ route('entreprise.persons.index') }}" class="btn-manage">
                 ⚙️ إدارة الأشخاص
             </a>
+
+            <a href="{{ route('entreprise.cards') }}" class="btn btn-club-outline mt-2 w-100">
+                🪪 طباعة بطاقات الأعضاء
+            </a>
         </div>
 
         {{-- 📅 النشاطات --}}

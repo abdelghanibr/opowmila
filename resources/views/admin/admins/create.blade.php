@@ -43,6 +43,27 @@
                             @enderror
                         </div>
 
+                        {{-- نوع الحساب --}}
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold text-light">نوع الحساب</label>
+                            <select name="type"
+                                    class="form-select form-control-modern @error('type') is-invalid @enderror"
+                                    required>
+                                <option value="admin" {{ old('type', 'admin') == 'admin' ? 'selected' : '' }}>
+                                    👑 مسؤول عام
+                                </option>
+                                <option value="financier" {{ old('type') == 'financier' ? 'selected' : '' }}>
+                                    💰 مالي (حالة مالية)
+                                </option>
+                                <option value="verificateur" {{ old('type') == 'verificateur' ? 'selected' : '' }}>
+                                    🎫 متحقق (تذاكر)
+                                </option>
+                            </select>
+                            @error('type')
+                                <div class="text-danger small mt-2">{{ $message }}</div>
+                            @enderror
+                        </div>
+
                         {{-- اختيار المجمّع --}}
                         <div class="mb-4">
                             <label class="form-label fw-semibold text-light">المجمّع الرياضي التابع له</label>

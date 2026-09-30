@@ -38,10 +38,8 @@ public function index()
         ->where('firstname', '!=', '')
         ->where('lastname', '!=', '')
         ->whereHas('user', function ($q) {
-            $q->where('type', 'person');
-        })
-        ->whereHas('dossier', function ($q) {
-            $q->where('etat', 'approved');
+            // 👥 كل الأنواع: فرد / نادٍ / مؤسسة (كلهم في جدول persons)
+            $q->whereIn('type', ['person', 'club', 'company']);
         });
 
     if (is_null($admin->complex_id) || $admin->complex_id == 0) {

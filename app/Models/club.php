@@ -8,6 +8,7 @@ class Club extends Model
 {
     protected $fillable = [
         'user_id',
+        'activity_id',
         'nom',
         'numero_agrement',
         'date_expiration',
@@ -38,5 +39,11 @@ public function validator()
     public function members()
     {
         return $this->hasMany(Person::class);
+    }
+
+    // النشاط الرياضي الوحيد للنادي
+    public function activity()
+    {
+        return $this->belongsTo(Activity::class, 'activity_id');
     }
 }

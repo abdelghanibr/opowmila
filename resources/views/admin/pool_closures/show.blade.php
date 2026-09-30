@@ -12,7 +12,19 @@
             </p>
         </div>
 
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 flex-wrap">
+            @if($impactedReservations->count() > 0 && $poolClosure->status === 'active')
+                <form action="{{ route('admin.pool-closures.notify', $poolClosure) }}"
+                      method="POST"
+                      onsubmit="return confirm('هل أنت متأكد من إرسال إشعار بالبريد إلى جميع الأشخاص المتأثرين ({{ $impactedReservations->count() }})؟');">
+                    @csrf
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-envelope me-1"></i>
+                        إشعار الجميع ({{ $impactedReservations->count() }})
+                    </button>
+                </form>
+            @endif
+
             <a href="{{ route('admin.pool-closures.edit', $poolClosure) }}" class="btn btn-warning">
                 تعديل العطل
             </a>

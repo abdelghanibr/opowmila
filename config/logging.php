@@ -123,6 +123,13 @@ return [
             'handler' => NullHandler::class,
         ],
 
+        'closure' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/closure-alert.log'),
+            'level' => 'debug',
+            'replace_placeholders' => true,
+        ],
+
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
         ],

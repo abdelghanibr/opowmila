@@ -18,7 +18,6 @@
 
 @php
 $files = [
-    'agrement' => 'اعتماد النادي',
     'statut' => 'القانون الأساسي',
     'bureau_members' => 'قائمة أعضاء المكتب',
     'coaches_certificates' => 'شهادات المدربين',
@@ -33,24 +32,74 @@ $attachments = json_decode($club->attachments ?? '{}', true);
 @endphp
 
 <div class="row g-3">
-@foreach($files as $key => $label)
+
+    {{-- ================== النشاط الرياضي للنادي ================== --}}
     <div class="col-md-6">
-        <label class="fw-bold mb-1 d-block">{{ $label }}</label>
+        <label class="fw-bold mb-1 d-block">🏅 النشاط الرياضي للنادي</label>
+        <select name="activity_id" class="form-select">
+            <option value="">— اختر النشاط —</option>
+            @foreach($activities as $activity)
+                <option value="{{ $activity->id }}"
+                    {{ old('activity_id', $club->activity_id) == $activity->id ? 'selected' : '' }}>
+                    {{ $activity->title }}
+                </option>
+            @endforeach
+        </select>
+        <div class="form-text">
+            نشاط النادي يُعرض تلقائيًا على بطاقات كل أعضائه.
+        </div>
+        @error('activity_id')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+    </div>
 
+    {{-- ================== اعتماد النادي ================== --}}
+    <div class="col-md-6">
+        <label class="fw-bold mb-1 d-block">📄 الإعتماد (recto + verso)</label>
         <input type="file"
-               name="{{ $key }}"
-               class="form-control">
-
-        {{-- عرض الملف الحالي إن وُجد --}}
-        @if(isset($attachments[$key]))
-            <a href="{{ asset($attachments[$key]) }}"
+               name="agrement"
+               class="form-control"
+               accept="application/pdf">
+        @if(isset($attachments['agrement']))
+            <a href="{{ asset($attachments['agrement']) }}"
                target="_blank"
                class="btn btn-sm btn-outline-success mt-1">
                👁 عرض الملف الحالي
             </a>
         @endif
     </div>
-@endforeach
+
+    {{-- ================== الملفات الأخرى ================== --}}
+    @foreach($files as $key => $label)
+        <div class="col-md-6">
+            <label class="fw-bold mb-1 d-block">{{ $label }}</label>
+            <input type="file"
+                   name="{{ $key }}"
+                   class="form-control">
+            @if(isset($attachments[$key]))
+                <a href="{{ asset($attachments[$key]) }}"
+                   target="_blank"
+                   class="btn btn-sm btn-outline-success mt-1">
+                   👁 عرض الملف الحالي
+                </a>
+            @endif
+        </div>
+    @endforeach
+
+    {{-- ================== التبرئة ================== --}}
+    <div class="col-md-6">
+        <label class="fw-bold mb-1 d-block">التبرئة</label>
+        <input type="file"
+               name="tabri2a"
+               class="form-control"
+               accept="image/jpeg,image/png,application/pdf">
+        @if(isset($attachments['tabri2a']))
+            <a href="{{ asset($attachments['tabri2a']) }}"
+               target="_blank"
+               class="btn btn-sm btn-outline-success mt-1">
+               👁 عرض الملف الحالي
+            </a>
+        @endif
+    </div>
+
 </div>
 
 {{-- ================= PROGRESS BAR ================= --}}

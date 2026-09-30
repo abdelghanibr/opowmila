@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Person;
 use App\Models\Club;
+use App\Models\AgeCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -35,7 +36,8 @@ class PersonController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        $persons = Person::where('user_id', $user->id)
+        $persons = Person::with('ageCategory')
+            ->where('user_id', $user->id)
             ->orderByDesc('id')
             ->get();
 
@@ -124,9 +126,11 @@ public function updateAssurance(Request $request)
     {
         $user = Auth::user();
 
+        $ageCategories = AgeCategory::orderBy('id')->get();
+
         return match ($user->type) {
-            'club'    => view('club.persons.create'),
-            'company' => view('entreprise.persons.create'),
+            'club'    => view('club.persons.create', compact('ageCategories')),
+            'company' => view('entreprise.persons.create', compact('ageCategories')),
             default   => abort(403, 'نوع المستخدم غير مدعوم'),
         };
     }
@@ -145,9 +149,11 @@ public function updateAssurance(Request $request)
         'birth_date' => 'required|date|before_or_equal:' . now()->subYears(3)->format('Y-m-d'),
         'gender'     => 'required|in:ذكر,أنثى',
         'education'  => 'required|string|max:50',
-        'study_level' => 'nullable|string|max:100|in:فئة المدارس او البراعم,فئة اقل من 13 سنة (U13),فئة اقل من 16 سنة (U16),فئة اقل من 20 سنة (U20),فئة الاكابر',
         'photo'      => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         'registration_form_pdf' => 'nullable|file|mimes:pdf|max:3072',
+        'blood_type' => 'nullable|string|max:5|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
+        'age_category_id' => 'nullable|integer|exists:age_categories,id',
+        'address'    => 'nullable|string|max:255',
     ];
 
     // 2️⃣ شرط رقم الإجازة إذا كان المستخدم نادي فقط
@@ -213,10 +219,12 @@ public function updateAssurance(Request $request)
     $person->birth_date = $validated['birth_date'];
     $person->gender     = $validated['gender'];
     $person->education  = $validated['education'];
-    $person->study_level = $validated['study_level'] ?? null;
     $person->photo      = $photoPath;
     $person->birth_certificate = $birthCertificatePath;
     $person->license_number = $validated['license_number'] ?? null;
+    $person->blood_type = $validated['blood_type'] ?? null;
+    $person->age_category_id = $validated['age_category_id'] ?? null;
+    $person->address = $validated['address'] ?? null;
 
     /* ===== Link to Club (Club or Company) ===== */
     if ($user->type === 'club') {
@@ -261,13 +269,15 @@ public function updateAssurance(Request $request)
         $user   = Auth::user();
         $person = Person::findOrFail($id);
 
+        $ageCategories = AgeCategory::orderBy('id')->get();
+
               if ((int)$person->user_id !== (int)auth()->id()) {
    abort(403, 'غير مصرح لك بتعديل هذا الشخص');
 }
 
         return match ($user->type) {
-            'club'    => view('club.persons.edit', compact('person')),
-            'company' => view('entreprise.persons.edit', compact('person')),
+            'club'    => view('club.persons.edit', compact('person', 'ageCategories')),
+            'company' => view('entreprise.persons.edit', compact('person', 'ageCategories')),
             default   => abort(403),
         };
     }
@@ -292,9 +302,11 @@ public function updateAssurance(Request $request)
         'birth_date' => 'required|date|before_or_equal:' . now()->subYears(3)->format('Y-m-d'),
         'gender'     => 'required|in:ذكر,أنثى',
         'education'   => 'required|string|max:50',
-        'study_level' => 'nullable|string|max:100|in:فئة المدارس او البراعم,فئة اقل من 13 سنة (U13),فئة اقل من 16 سنة (U16),فئة اقل من 20 سنة (U20),فئة الاكابر',
         'photo'      => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         'registration_form_pdf' => 'nullable|file|mimes:pdf|max:3072',
+        'blood_type' => 'nullable|string|max:5|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
+        'age_category_id' => 'nullable|integer|exists:age_categories,id',
+        'address'    => 'nullable|string|max:255',
     ];
 
     // 2️⃣ شرط رقم الإجازة للنوادي فقط
@@ -324,8 +336,10 @@ public function updateAssurance(Request $request)
         'birth_date'     => $validated['birth_date'],
         'gender'         => $validated['gender'],
         'education'      => $validated['education'],
-        'study_level'    => $validated['study_level'] ?? null,
         'license_number' => $validated['license_number'] ?? null,
+        'blood_type'     => $validated['blood_type'] ?? null,
+        'age_category_id' => $validated['age_category_id'] ?? null,
+        'address'        => $validated['address'] ?? null,
     ]);
 
     /* ===== Update photo (only if changed) ===== */

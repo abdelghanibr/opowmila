@@ -8,10 +8,17 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h5 class="fw-bold mb-0">👥 قائمة عمال / أعضاء المؤسسة</h5>
 
-        <a href="{{ route('entreprise.persons.create') }}"
-           class="btn btn-success btn-sm">
-            ➕ إضافة شخص
-        </a>
+        <div class="d-flex gap-2">
+            <a href="{{ route('entreprise.cards') }}"
+               class="btn btn-outline-success btn-sm">
+                🪪 طباعة كل البطاقات
+            </a>
+
+            <a href="{{ route('entreprise.persons.create') }}"
+               class="btn btn-success btn-sm">
+                ➕ إضافة شخص
+            </a>
+        </div>
     </div>
 
     {{-- ===== رسالة نجاح ===== --}}
@@ -74,6 +81,11 @@
 
                     {{-- ===== الإجراءات ===== --}}
                     <td>
+                        <a href="{{ route('entreprise.card', $p->id) }}"
+                           class="btn btn-sm btn-info" title="بطاقة العضو">
+                            🪪 بطاقة
+                        </a>
+
                         <a href="{{ route('entreprise.persons.edit', $p->id) }}"
                            class="btn btn-sm btn-warning">
                             ✏ تعديل

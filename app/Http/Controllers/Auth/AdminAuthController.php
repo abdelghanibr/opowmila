@@ -59,8 +59,8 @@ class AdminAuthController extends Controller
 
             $user = Auth::user();
 
-            // التأكد من أن المستخدم Admin
-            if ($user->type !== 'admin') {
+            // التأكد من أن المستخدم Admin / Verificateur / Financier
+            if (!in_array($user->type, ['admin', 'verificateur', 'financier'])) {
                 Auth::logout();
                 return back()->withErrors([
                     'email' => '⛔ هذا الحساب غير مصرح له بالدخول إلى لوحة الإدارة',
@@ -73,6 +73,11 @@ class AdminAuthController extends Controller
             // ================================
             // 💡 التحقق من complex_id
             // ================================
+            // المالي / المتحقق → مباشرة إلى صفحة الحجوزات (الوضعية المالية)
+            if (in_array($user->type, ['financier', 'verificateur'])) {
+                return redirect()->route('reservations.index');
+            }
+
           if (empty($user->complex_id)) {
     // لا يوجد complex → الذهاب للوحة العامة
     return redirect()->route('admin.dashboard');

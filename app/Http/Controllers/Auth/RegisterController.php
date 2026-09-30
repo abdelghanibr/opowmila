@@ -35,6 +35,8 @@ class RegisterController extends Controller
 
         switch ($user->type) {
             case 'admin':
+            case 'verificateur':
+            case 'financier':
                 return view('admin.profile.edit', compact('user','complexes'));
 
             case 'club':
@@ -92,6 +94,12 @@ class RegisterController extends Controller
             case 'entreprise':
                 return redirect()->route('entreprise.profile.edit')
                     ->with('success', '✔ تم تحديث حساب الشركة!');
+
+            case 'admin':
+            case 'verificateur':
+            case 'financier':
+                return redirect()->route('admin.profile.edit')
+                    ->with('success', 'تم تحديث البيانات بنجاح');
 
             default:
                 abort(403, 'غير مصرح لك بتنفيذ هذا الإجراء');

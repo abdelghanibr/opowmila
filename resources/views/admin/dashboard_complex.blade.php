@@ -173,6 +173,18 @@
             </a>
         </div>
 
+        {{-- بطاقات اللاعبين --}}
+        <div class="col-md-3">
+            <a href="{{ route('admin.cards') }}" class="dash-card text-decoration-none" target="_blank">
+                <div class="dash-icon">🪪</div>
+                <div class="dash-title">بطاقات اللاعبين</div>
+                <p class="dash-desc">
+                    طباعة بطاقات منخرطي هذا المجمع (فرد / نادٍ / مؤسسة) فقط.
+                </p>
+                <div class="count-box">🖨️ طباعة البطاقات</div>
+            </a>
+        </div>
+
         {{-- التخصصات الرياضية --}}
         <div class="col-md-3">
             <a href="{{ route('admin.activities.index') }}" class="dash-card text-decoration-none">

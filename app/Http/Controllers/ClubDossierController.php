@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Club;
+use App\Models\Activity;
 
 class ClubDossierController extends Controller
 {
@@ -20,7 +21,10 @@ class ClubDossierController extends Controller
     public function edit()
     {
         $club = Club::where('user_id', Auth::id())->firstOrFail();
-        return view('club.dossier.edit', compact('club'));
+
+        $activities = Activity::orderBy('title')->get();
+
+        return view('club.dossier.edit', compact('club', 'activities'));
     }
 
     // حفظ التعديلات
@@ -51,6 +55,10 @@ class ClubDossierController extends Controller
             '*.max'  => '❌ حجم الملف كبير جدًا. الحد الأقصى المسموح به هو 5 ميغابايت.',
             '*.mimes'=> '❌ صيغة الملف غير مدعومة. الأشكال المسموحة: PDF, JPG, JPEG, PNG.',
         ]);
+
+        $activityId = $request->validate([
+            'activity_id' => 'nullable|integer|exists:activities,id',
+        ])['activity_id'] ?? null;
 
         $attachments = json_decode($club->attachments, true) ?? [];
 if (app()->environment('local')) {
@@ -110,6 +118,7 @@ $newEtat = $club->etat === 'approved'
     $club->update([
         'attachments' => json_encode($attachments),
         'etat'        => $newEtat,
+        'activity_id' => $activityId,
     ]);
 
         

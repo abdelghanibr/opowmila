@@ -56,6 +56,20 @@ class ProfileController extends Controller
             ->orderByDesc('id')
             ->firstOrFail();
 
+        // 🚫 منع تكرار إنشاء طفل فارغ: إذا وُجد طفل غير مكتمل، نكمل عليه مباشرة
+        $emptyChild = Person::where('parent_id', $parentPerson->id)
+            ->whereNull('firstname')
+            ->orderByDesc('id')
+            ->first();
+
+        if ($emptyChild) {
+            session(['edit_person_id' => $emptyChild->id]);
+
+            return redirect()
+                ->route('profile.step', 1)
+                ->with('info', '👶 يوجد طفل غير مكتمل البيانات، أكمل معلوماته الآن.');
+        }
+
         $child = Person::create([
             'user_id'    => null,
             'parent_id'  => $parentPerson->id,
@@ -169,13 +183,32 @@ public function showStep($step)
     [$person, $isChild] = $this->activePerson($user);
 
     $parentPerson = null;
+    $existingChildren = [];
     if ($user->type === 'person') {
         $parentPerson = $this->accountParentPerson($user);
+        // 👶 Liste des enfants déjà inscrits (pour la vérification anti-doublon côté JS)
+        if ($parentPerson) {
+            $existingChildren = Person::where('parent_id', $parentPerson->id)
+                ->whereNotNull('firstname')
+                ->where('firstname', '!=', '')
+                ->get(['id', 'firstname', 'lastname', 'birth_date'])
+                ->map(function ($c) {
+                    return [
+                        'id'         => $c->id,
+                        'firstname'  => $c->firstname,
+                        'lastname'   => $c->lastname,
+                        'birth_date' => $c->birth_date ? \Carbon\Carbon::parse($c->birth_date)->format('Y-m-d') : null,
+                    ];
+                })->values()->toArray();
+        }
     }
 
-    // 👶 Un enfant n'a pas besoin de saisir les infos du tuteur (étape 2 = le parent)
-    if ($isChild && $step == 2) {
-        return redirect()->route('profile.step', 3);
+    // 👶 Étape 2 (info du tuteur) : visible pour les mineurs, sautée pour les majeurs
+    if ($step == 2 && $person && $person->birth_date) {
+        $personAge = Carbon::parse($person->birth_date)->age;
+        if ($personAge >= 18) {
+            return redirect()->route('profile.step', 3);
+        }
     }
 
     $dossier = $person ? Dossier::where('person_id', $person->id)->first() : null;
@@ -190,7 +223,7 @@ public function showStep($step)
         "غرداية","غليزان"
     ];
 
-    return view('profile.steps', compact('step','user','person','wilayas','dossier','parentPerson','isChild'));
+    return view('profile.steps', compact('step','user','person','wilayas','dossier','parentPerson','isChild','existingChildren'));
 }
 
 
@@ -209,8 +242,6 @@ public function showStep($step)
         switch ($step) {
 
             case 1:
-                $tuteurRule = $isChild ? 'required|string|max:50' : 'nullable|string|max:50';
-
                 $validated = $request->validate([
                     'firstname' => 'required|string|max:50',
                     'lastname' => 'required|string|max:50',
@@ -219,17 +250,24 @@ public function showStep($step)
                     'blood_type' => 'nullable|string|max:5',
                     'profession' => 'nullable|string|max:100',
                     'handicap' => 'required' ,
-                    'tuteur_fullname' =>  $tuteurRule,
+                    'tuteur_fullname' => 'nullable|string|max:50',
                 ]);
 
                 $age = Carbon::parse($request->birth_date)->age;
                 $ageCat = $age <= 12 ? 1 : ($age <= 17 ? 2 : ($age <= 100 ? 3 : 4));
 
                 if ($isChild) {
-                    // 👶 Un enfant doit être mineur
-                    if ($age >= 18) {
+                    // 🚫 Empêcher de ré-inscrire deux fois le même enfant (même parent + identité)
+                    $duplicate = Person::where('parent_id', $parentPerson->id)
+                        ->where('id', '!=', $person->id)
+                        ->where('firstname', $request->firstname)
+                        ->where('lastname', $request->lastname)
+                        ->where('birth_date', $request->birth_date)
+                        ->exists();
+
+                    if ($duplicate) {
                         return back()->withErrors([
-                            'birth_date' => '❌ Pour inscrire un enfant, son âge doit être inférieur à 18 ans.',
+                            'firstname' => '❌ Ce enfant est déjà inscrit sur ce compte. Impossible de l\'enregistrer une deuxième fois.',
                         ])->withInput();
                     }
 
@@ -259,6 +297,7 @@ public function showStep($step)
                         'parent_firstname' => $parentPerson->firstname ?? '',
                         'parent_lastname'  => $parentPerson->lastname ?? '',
                         'parent_phone'     => $parentPerson->phone ?? '',
+                        'tuteur_fullname'  => trim(($parentPerson->firstname ?? '') . ' ' . ($parentPerson->lastname ?? '')),
                     ]);
                 } else {
                     $validated = $request->validate([

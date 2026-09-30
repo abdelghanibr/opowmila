@@ -28,21 +28,8 @@
                 <div class="form-error text-danger small">{{ $message }}</div>
             @enderror
         </div>
-        @if($isChild ?? false)
-        <div class="col-md-6 mb-3">
-            <label class="form-label">اسم الولي</label>
-            <input type="text"
-                   name="tuteur_fullname"
-                   class="form-control @error('tuteur_fullname') is-invalid @enderror"
-                   value="{{ old('tuteur_fullname', $person->tuteur_fullname ?? (($parentPerson->firstname ?? '') . ' ' . ($parentPerson->lastname ?? ''))) }}"
-                   required>
-
-            @error('tuteur_fullname')
-                <div class="form-error text-danger small">{{ $message }}</div>
-            @enderror
-        </div>
-        @else
-            <input type="hidden" name="tuteur_fullname" value="{{ old('tuteur_fullname', $person->tuteur_fullname ?? '') }}">
+        @if(!($isChild ?? false))
+        <input type="hidden" name="tuteur_fullname" value="{{ old('tuteur_fullname', $person->tuteur_fullname ?? '') }}">
         @endif
 
         <!-- تاريخ الميلاد -->

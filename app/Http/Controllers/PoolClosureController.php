@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\PoolClosureMail;
 use App\Models\ComplexActivity;
 use App\Models\PoolClosure;
 use App\Models\Reservation;
@@ -9,6 +10,8 @@ use App\Models\ReservationCredit;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class PoolClosureController extends Controller
 {
@@ -193,6 +196,60 @@ class PoolClosureController extends Controller
         return redirect()
             ->route('admin.pool-closures.show', $poolClosure)
             ->with('success', "تم توليد {$createdCredits} رصيد تعويضي، بمجموع {$totalCredit} دج.");
+    }
+
+    public function notify(PoolClosure $poolClosure)
+    {
+        if ($poolClosure->status !== 'active') {
+            return back()->with('error', 'هذا العطل ملغى، لا يمكن إرسال الإشعارات.');
+        }
+
+        $impactedReservations = $this->getImpactedReservations($poolClosure);
+
+        $mailQueue = [];
+
+        foreach ($impactedReservations as $item) {
+            $userEmail = optional($item['reservation']->user)->email;
+
+            if (!$userEmail) {
+                continue;
+            }
+
+            $mailQueue[$userEmail][] = $item;
+        }
+
+        $sentEmails = 0;
+        foreach ($mailQueue as $email => $items) {
+            try {
+                Mail::to($email)->send(new PoolClosureMail($poolClosure, $items));
+                $sentEmails++;
+
+                Log::channel('closure')->info('Alert e-mail de fermeture envoyé', [
+                    'to'               => $email,
+                    'pool_closure_id'  => $poolClosure->id,
+                    'status'           => 'sent',
+                    'impacted_items'   => count($items),
+                    'impacted_dates'   => collect($items)->flatMap(fn ($i) => $i['impacted_dates'])->unique()->values()->all(),
+                ]);
+            } catch (\Throwable $e) {
+                report($e);
+                Log::warning('Échec envoi mail fermeture piscine', [
+                    'to'    => $email,
+                    'error' => $e->getMessage(),
+                ]);
+
+                Log::channel('closure')->info('Alert e-mail de fermeture échouée', [
+                    'to'               => $email,
+                    'pool_closure_id'  => $poolClosure->id,
+                    'status'           => 'failed',
+                    'error'            => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return redirect()
+            ->route('admin.pool-closures.show', $poolClosure)
+            ->with('success', "تم إرسال {$sentEmails} إشعار بالبريد إلى الأشخاص المتأثرين.");
     }
 
     private function getImpactedReservations(PoolClosure $poolClosure)

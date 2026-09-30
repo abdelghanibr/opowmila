@@ -63,7 +63,7 @@
                             <span class="badge bg-danger">أنثى</span>
                         @endif
                     </td>
-                    <td>{{ $p->study_level ?? '—' }}</td>
+                    <td>{{ $p->ageCategory?->name ?? '—' }}</td>
                     <td class="fw-bold text-success">
                         {{ $p->license_number ?? '—' }}
                     </td>

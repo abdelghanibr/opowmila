@@ -24,8 +24,8 @@ class AdminMiddleware
 
         $user = Auth::user();
 
-        // يسمح فقط للـ admin
-        if ($user->type !== 'admin') {
+        // يسمح فقط للـ admin / verificateur / financier
+        if (!in_array($user->type, ['admin', 'verificateur', 'financier'])) {
             abort(403, 'غير مصرح لك');
         }
 

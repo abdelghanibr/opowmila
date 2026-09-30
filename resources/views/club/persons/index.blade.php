@@ -6,13 +6,19 @@
 
     {{-- العنوان + زر الإضافة --}}
     <div class="d-flex justify-content-between align-items-center mb-4">
-       
+        <h5 class="fw-bold mb-0">👥 رياضيو النادي</h5>
 
-<a href="{{ route('club.persons.create') }}"
-   class="btn btn-success btn-sm">
-    ➕ إضافة عضو
-</a>
+        <div class="d-flex gap-2">
+            <a href="{{ route('club.cards') }}"
+               class="btn btn-outline-success btn-sm">
+                🪪 طباعة كل البطاقات
+            </a>
 
+            <a href="{{ route('club.persons.create') }}"
+               class="btn btn-success btn-sm">
+                ➕ إضافة عضو
+            </a>
+        </div>
     </div>
 
     {{-- رسالة نجاح --}}
@@ -67,7 +73,7 @@
                     <td>{{ \Carbon\Carbon::parse($p->birth_date)->age }} سنة</td>
                     <td>{{ $p->gender }}</td>
                     <td>{{ $p->education }}</td>
-                    <td>{{ $p->study_level ?? '—' }}</td>
+                    <td>{{ $p->ageCategory?->name ?? '—' }}</td>
   <td>{{ $p->license_number }}</td>
                     {{-- الاستمارة --}}
                     <td>
@@ -83,6 +89,11 @@
                     </td>
                     {{-- الإجراءات --}}
                     <td>
+                        <a href="{{ route('club.card', $p->id) }}"
+                           class="btn btn-sm btn-info" title="بطاقة اللاعب">
+                            🪪 بطاقة
+                        </a>
+
                         <a href="{{ route('club.persons.edit', $p->id) }}"
                            class="btn btn-sm btn-warning">
                             ✏ تعديل

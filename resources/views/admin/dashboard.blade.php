@@ -930,6 +930,13 @@ body{
         <div class="count-box">{{ $totalAgeRegistrations ?? 0 }}</div>
     </a>
 
+    <a href="{{ route('admin.cards') }}" class="dash-card" target="_blank">
+        <div class="dash-icon">🪪</div>
+        <h6>بطاقات اللاعبين</h6>
+        <p class="dash-desc">طباعة بطاقات منخرطي النوادي والمؤسسات والفئات الفردية.</p>
+        <div class="count-box">🖨️</div>
+    </a>
+
     <a href="{{ route('admin.activities.index') }}" class="dash-card">
         <div class="dash-icon">🏋️‍♂️</div>
         <h6>التخصصات الرياضية</h6>

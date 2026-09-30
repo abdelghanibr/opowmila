@@ -162,6 +162,14 @@
                 <a href="{{ route('reservation.my-reservations') }}" class="btn btn-main btn-sm">عرض الحجوزات</a>
             </div>
         </div>
+
+        <div class="col-md-4">
+            <div class="dash-card">
+                <h5>🪪 بطاقتي</h5>
+                <p class="text-muted">بطاقة اللاعب للموسم الحالي (عرض، طباعة، QR)</p>
+                <a href="{{ route('person.card') }}" class="btn btn-main btn-sm">عرض بطاقتي</a>
+            </div>
+        </div>
     </div>
 
 

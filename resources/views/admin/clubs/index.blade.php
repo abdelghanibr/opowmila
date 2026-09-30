@@ -56,7 +56,7 @@
                     $files = json_decode($c->attachments, true) ?? [];
 
                     $labels = [
-                        'agreement'              => '🏛️ اعتماد النادي',
+                        'agrement'              => '🏛️ اعتماد النادي',
                         'statut'                 => '📜 القانون الأساسي',
                         'bureau_members'         => '👥 أعضاء المكتب المسير',
                         'coaches_certificates'   => '🎓 شهادات المدربين',
@@ -65,6 +65,7 @@
                         'rules_book'             => '📘 دفتر الشروط',
                         'minutes_meeting'        => '📝 محضر الجمعية العامة',
                         'exploitation_request'   => '📄 طلب الاستغلال',
+                        'tabri2a'                => '📄 التبرئة',
                     ];
                 @endphp
 
@@ -81,6 +82,9 @@
                         @if(count($files))
                             <div class="attachments-box">
                                 @foreach($files as $key => $path)
+                                    @if(is_numeric($key) || in_array($key, ['agreement', 'agrement_recto', 'agrement_verso']))
+                                        @continue
+                                    @endif
                                     <div class="attachment-item">
                                         <span class="attachment-title">
                                             {{ $labels[$key] ?? '📎 وثيقة' }}

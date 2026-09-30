@@ -52,6 +52,19 @@ class ReservationController extends Controller
 
 public function togglePayment(Reservation $reservation)
 {
+    // 🔒 Réservé à l'admin et au financier
+    if (!in_array(auth()->user()->type, ['admin', 'financier'])) {
+        abort(403, 'غير مصرح لك');
+    }
+
+    // 🔒 Le financier lié à un complexe ne peut traiter que les réservations de son complexe
+    if (auth()->user()->type !== 'admin'
+        && !empty(auth()->user()->complex_id)
+        && $reservation->complexActivity
+        && $reservation->complexActivity->complex_id != auth()->user()->complex_id) {
+        abort(403, 'غير مصرح لك');
+    }
+
     // Force toggle
     if ($reservation->payment_status == 'paid') {
         $reservation->payment_status = 'pending';
@@ -173,7 +186,7 @@ $seasons = Season::where(function ($query) use ($today, $limitDate) {
 
    
     // 🧑‍💼 مستخدم عادي → حجوزاته فقط
-if ($user->type != 'admin') {
+if (!in_array($user->type, ['admin', 'verificateur', 'financier'])) {
 
     $query->where('user_id', $user->id);
 
@@ -204,6 +217,11 @@ if ($user->type != 'admin') {
 
         $reservations = $query->get();
 
+        // 📊 إحصائيات مالية للأدمن / المالي / المتحقق
+        $paidCount       = $reservations->where('payment_status', 'paid')->count();
+        $pendingCount    = $reservations->where('payment_status', '!=', 'paid')->count();
+        $totalPaidAmount = $reservations->where('payment_status', 'paid')->sum('total_price');
+
  $schedules = Schedule::whereHas('complexActivity', function ($q) use ($user) {
         $q->where('complex_id', $user->complex_id);
     })
@@ -220,12 +238,20 @@ if ($user->type != 'admin') {
             'reservations',
             'activities',
             'seasons',
-            'complexes','schedules'
+            'complexes','schedules',
+            'paidCount',
+            'pendingCount',
+            'totalPaidAmount'
         ));
     }
 
     // 🟢 مدير عام → عرض كل المجمعات
     $reservations = $query->get();
+
+    // 📊 إحصائيات مالية للأدمن / المالي / المتحقق
+    $paidCount       = $reservations->where('payment_status', 'paid')->count();
+    $pendingCount    = $reservations->where('payment_status', '!=', 'paid')->count();
+    $totalPaidAmount = $reservations->where('payment_status', 'paid')->sum('total_price');
 
     $complexes  = Complex::orderBy('nom')->get();
     $activities = Activity::orderBy('title')->get();
@@ -238,10 +264,74 @@ if ($user->type != 'admin') {
         'reservations',
         'activities',
         'seasons',
-        'complexes' ,'schedules'
+        'complexes' ,'schedules',
+        'paidCount',
+        'pendingCount',
+        'totalPaidAmount'
     ));
 }
 
+
+
+
+     public function export(Request $request)
+{
+    $user      = auth()->user();
+    $format    = $request->query('format', 'xls');
+    $complexId = $request->query('complex_id');
+    $onlySummary = $request->query('table') === 'summary';
+    $userComplex = null;
+
+    $query = Reservation::with(['complexActivity.complex', 'complexActivity.activity', 'season', 'user', 'schedule']);
+
+    // 🔒 Scope : le financier/verificateur lié à un complexe ne voit que son complexe
+    if (!empty($user->complex_id) && $user->complex_id != 0) {
+        $query->whereHas('complexActivity', function ($q) use ($user) {
+            $q->where('complex_id', $user->complex_id);
+        });
+        $userComplex = \App\Models\Complex::find($user->complex_id);
+    }
+
+    // 🎯 Filtre manuel par complex (paramètre d'URL)
+    if (!empty($complexId)) {
+        $query->whereHas('complexActivity', function ($q) use ($complexId) {
+            $q->where('complex_id', $complexId);
+        });
+    }
+
+    $reservations = $query->latest('id')->get();
+
+    // 📊 Résumé par complex / activité
+    $summary = $reservations
+        ->groupBy(function ($r) {
+            return ($r->complexActivity->complex->id ?? 'x') . '|' . ($r->complexActivity->activity->id ?? 'x');
+        })
+        ->map(function ($group) {
+            return (object) [
+                'complex'  => $group->first()->complexActivity->complex->nom ?? '—',
+                'activity' => $group->first()->complexActivity->activity->title ?? '—',
+                'count'    => $group->count(),
+                'paid'     => $group->where('payment_status', 'paid')->sum('total_price'),
+                'unpaid'   => $group->where('payment_status', '!=', 'paid')->sum('total_price'),
+            ];
+        })
+        ->values();
+
+    $html = view('admin.reservations.export', compact('reservations', 'summary', 'userComplex', 'onlySummary'))->render();
+
+    if ($format === 'pdf') {
+        return $html;
+    }
+
+    // 📊 Export Excel (HTML .xls) — garde le style
+    $filename = $onlySummary
+        ? 'resume_complex_activite_' . date('Y-m-d_H-i') . '.xls'
+        : 'reservations_' . date('Y-m-d_H-i') . '.xls';
+
+    return response($html)
+        ->header('Content-Type', 'application/vnd.ms-excel; charset=utf-8')
+        ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+}
 
 
 

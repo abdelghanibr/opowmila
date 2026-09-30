@@ -93,23 +93,43 @@
                     </div>
 
                     <div class="col-md-6">
-                        <label class="form-label fw-bold">التصنيف</label>
-                        <select name="study_level"
+                        <label class="form-label fw-bold">الفئة العمرية</label>
+                        <select name="age_category_id"
                                 class="form-select form-select-lg rounded-3">
-                            <option value="">— اختر التصنيف —</option>
-                            @foreach([
-                                'فئة المدارس او البراعم',
-                                'فئة اقل من 13 سنة (U13)',
-                                'فئة اقل من 16 سنة (U16)',
-                                'فئة اقل من 20 سنة (U20)',
-                                'فئة الاكابر'
-                            ] as $cat)
-                                <option value="{{ $cat }}"
-                                    {{ old('study_level', $person->study_level)==$cat?'selected':'' }}>
-                                    {{ $cat }}
+                            <option value="">— اختر الفئة العمرية —</option>
+                            @foreach($ageCategories as $ageCategory)
+                                <option value="{{ $ageCategory->id }}"
+                                    {{ (int) old('age_category_id', $person->age_category_id) === (int) $ageCategory->id ? 'selected' : '' }}>
+                                    {{ $ageCategory->name }}
                                 </option>
                             @endforeach
                         </select>
+                        @error('age_category_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">فصيلة الدم</label>
+                        <select name="blood_type"
+                                class="form-select form-select-lg rounded-3">
+                            <option value="">— اختر فصيلة الدم —</option>
+                            @foreach(['A+','A-','B+','B-','AB+','AB-','O+','O-'] as $blood)
+                                <option value="{{ $blood }}"
+                                    {{ old('blood_type', $person->blood_type) === $blood ? 'selected' : '' }}>
+                                    {{ $blood }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('blood_type')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">العنوان</label>
+                        <input type="text" name="address"
+                               class="form-control form-control-lg rounded-3"
+                               value="{{ old('address', $person->address) }}"
+                               maxlength="255"
+                               placeholder="العنوان الكامل">
+                        @error('address')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
 
                     <!-- ================= صورة شمسية ================= -->

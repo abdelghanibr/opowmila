@@ -19,11 +19,18 @@ class AdminController extends Controller
 {
     public function __construct()
     {
-        // السماح بدخول المسؤول فقط
+        // السماح بدخول المسؤول، المتحقق والمالي
         $this->middleware(function ($request, $next) {
-            if (!Auth::check() || Auth::user()->type !== 'admin') {
+            if (!Auth::check() || !in_array(Auth::user()->type, ['admin', 'verificateur', 'financier'])) {
                 abort(403, 'غير مصرح لك بالدخول');
             }
+
+            // إدارة حسابات الإدارة: المسؤول العام فقط
+            if (Auth::user()->type !== 'admin'
+                && str_starts_with((string) $request->route()?->getName(), 'admins.')) {
+                abort(403, 'غير مصرح لك بالدخول');
+            }
+
             return $next($request);
         });
     }
@@ -532,7 +539,7 @@ public function programmeHebdo(Request $request, $id)
      */
     public function adminsIndex()
     {
-        $admins = User::where('type', 'admin')->with('complex')->get();
+        $admins = User::whereIn('type', ['admin', 'verificateur', 'financier'])->with('complex')->get();
         return view('admin.admins.index', compact('admins'));
     }
 
@@ -554,6 +561,7 @@ public function programmeHebdo(Request $request, $id)
             'name'       => 'required|string|max:255',
             'email'      => 'required|email|unique:users',
             'password'   => 'required|min:6',
+            'type'       => 'required|in:admin,verificateur,financier',
            'complex_id' => 'nullable|exists:complexes,id', 
         ]);
 
@@ -561,7 +569,7 @@ public function programmeHebdo(Request $request, $id)
             'name'       => $request->name,
             'email'      => $request->email,
             'password'   => Hash::make($request->password),
-            'type'       => 'admin',
+            'type'       => $request->type,
             'complex_id' => $request->complex_id
         ]);
 
@@ -589,11 +597,13 @@ public function programmeHebdo(Request $request, $id)
         $request->validate([
             'name'       => 'required',
             'email'      => 'required|email|unique:users,email,' . $admin->id,
+            'type'       => 'required|in:admin,verificateur,financier',
            'complex_id' => 'nullable|exists:complexes,id', 
         ]);
 
         $admin->name = $request->name;
         $admin->email = $request->email;
+        $admin->type = $request->type;
         $admin->complex_id = $request->complex_id;
 
         if ($request->password) {

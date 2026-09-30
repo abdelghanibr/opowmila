@@ -289,8 +289,16 @@ public function index(Request $request)
         : null;
 
     if ($assignedComplexId) {
-        $query->whereHas('person.user', function ($q) use ($assignedComplexId) {
-            $q->where('complex_id', $assignedComplexId);
+        $query->whereHas('person', function ($q) use ($assignedComplexId) {
+            $q->where(function ($q2) use ($assignedComplexId) {
+                // 🏃 individuel : complexe via le compte utilisateur ou complex_id direct
+                $q2->whereHas('user', fn ($u) => $u->where('complex_id', $assignedComplexId))
+                   ->orWhere('complex_id', $assignedComplexId)
+                   // 👶 enfant : complexe via le compte du parent
+                   ->orWhereHas('parent', fn ($p) => $p->whereHas('user', fn ($u) => $u->where('complex_id', $assignedComplexId)))
+                   // 🏊 membre club/entreprise : complexe via le compte du club / entreprise
+                   ->orWhereHas('club', fn ($c) => $c->whereHas('user', fn ($u) => $u->where('complex_id', $assignedComplexId)));
+            });
         });
     }
 
