@@ -76,8 +76,12 @@ class PlayerCardController extends Controller
 
         abort_unless(in_array($user->type, ['club', 'company']), 403);
 
+        // ids اختيارية (?ids=1,2,3) : طباعة البطاقات المحددة فقط
+        $idsArray = array_filter(array_map('intval', explode(',', (string) $request->input('ids'))));
+
         $persons = Person::with(['ageCategory', 'club.activity', 'lastReservation.complexActivity.activity', 'complex'])
             ->where('user_id', $user->id)
+            ->when($idsArray, fn ($q) => $q->whereIn('id', $idsArray))
             ->orderBy('lastname')
             ->get();
 

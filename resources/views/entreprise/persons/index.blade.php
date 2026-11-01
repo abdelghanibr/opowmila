@@ -9,6 +9,11 @@
         <h5 class="fw-bold mb-0">👥 قائمة عمال / أعضاء المؤسسة</h5>
 
         <div class="d-flex gap-2">
+            <button type="button" id="printSelectedCards"
+                    class="btn btn-outline-primary btn-sm">
+                🖨️ طباعة المحدد (<span id="selectedCount">0</span>)
+            </button>
+
             <a href="{{ route('entreprise.cards') }}"
                class="btn btn-outline-success btn-sm">
                 🪪 طباعة كل البطاقات
@@ -35,7 +40,10 @@
 
             <thead class="table-dark">
                 <tr>
-                    <th>#</th>
+                    <th>
+                        <input type="checkbox" id="selectAll" class="form-check-input" title="تحديد الكل">
+                        #
+                    </th>
                     <th>الصورة</th>
                     <th>الاسم</th>
                     <th>اللقب</th>
@@ -49,7 +57,10 @@
             <tbody>
             @foreach($persons as $p)
                 <tr>
-                    <td>{{ $loop->iteration }}</td>
+                    <td>
+                        <input type="checkbox" class="form-check-input row-check" value="{{ $p->id }}">
+                        {{ $loop->iteration }}
+                    </td>
 
                     {{-- ===== الصورة ===== --}}
                     <td>
@@ -145,4 +156,35 @@
 @endpush
 @push('js')
 @include('admin.partials.datatable-script', ['tableId' => '#personsTable'])
+<script>
+$(document).ready(function () {
+    const dt = $('#personsTable').DataTable();
+
+    function refreshCount() {
+        $('#selectedCount').text(dt.$('.row-check:checked').length);
+    }
+
+    // تحديد الكل (كل الصفوف المطابقة للبحث، في كل الصفحات)
+    $('#selectAll').on('click', function (e) {
+        e.stopPropagation(); // ne pas déclencher le tri de la colonne
+        $(dt.rows({ search: 'applied' }).nodes()).find('.row-check').prop('checked', this.checked);
+        refreshCount();
+    });
+
+    $('#personsTable').on('change', '.row-check', refreshCount);
+
+    $('#printSelectedCards').on('click', function () {
+        const selected = dt.$('.row-check:checked').map(function () {
+            return this.value;
+        }).get();
+
+        if (selected.length === 0) {
+            alert('الرجاء اختيار شخص واحد على الأقل');
+            return;
+        }
+
+        window.open("{{ route('entreprise.cards') }}?ids=" + selected.join(','), '_blank');
+    });
+});
+</script>
 @endpush
