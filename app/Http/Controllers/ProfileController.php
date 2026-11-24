@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Models\Person;
+use App\Models\AgeCategory;
 use App\Models\Dossier;
 use App\Models\User;
 use Carbon\Carbon;
@@ -254,7 +255,11 @@ public function showStep($step)
                 ]);
 
                 $age = Carbon::parse($request->birth_date)->age;
-                $ageCat = $age <= 12 ? 1 : ($age <= 17 ? 2 : ($age <= 100 ? 3 : 4));
+                // Catégorie d'âge selon min_age / max_age (pas d'id codé en dur : FK persons_ibfk_3)
+                $ageCat = AgeCategory::where('min_age', '<=', $age)
+                    ->where('max_age', '>=', $age)
+                    ->orderBy('min_age', 'desc')
+                    ->value('id');
 
                 if ($isChild) {
                     // 🚫 Empêcher de ré-inscrire deux fois le même enfant (même parent + identité)

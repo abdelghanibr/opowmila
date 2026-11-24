@@ -29,6 +29,12 @@ public function updateNote(Request $request, Dossier $dossier)
 
 public function autorisationParentale(Dossier $dossier)
 {
+    $dossier->loadMissing([
+        'person.user.complex',
+        'person.complex',
+        'person.parent.user.complex',
+    ]);
+
     return view('dossier.autorisation-parentale', compact('dossier'));
 }
 

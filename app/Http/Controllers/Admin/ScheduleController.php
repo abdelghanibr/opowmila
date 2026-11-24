@@ -198,13 +198,7 @@ public function create()
      */
     private function findSlotConflicts(int $complexId, $timeSlots, ?int $excludeScheduleId = null): array
     {
-        $newSlots = is_array($timeSlots) ? $timeSlots : json_decode((string) $timeSlots, true);
-
-        if (!is_array($newSlots) || $newSlots === []) {
-            return [];
-        }
-
-        $newSlots = $this->normalizeSlots($newSlots);
+        $newSlots = $this->normalizeSlots($this->decodeSlots($timeSlots));
 
         if ($newSlots === []) {
             return [];
@@ -230,7 +224,7 @@ public function create()
         $conflicts = [];
 
         foreach ($existing as $schedule) {
-            $otherSlots = $this->normalizeSlots(json_decode($schedule->time_slots, true));
+            $otherSlots = $this->normalizeSlots($this->decodeSlots($schedule->time_slots));
 
             foreach ($otherSlots as $other) {
                 foreach ($newSlots as $new) {
@@ -252,6 +246,32 @@ public function create()
         }
 
         return array_values(array_unique($conflicts));
+    }
+
+
+    /**
+     * 🧹 Décode `time_slots` quelle que soit sa forme :
+     * array (cast Eloquent), chaîne JSON, ou chaîne doublement encodée
+     * (les anciennes lignes contiennent "[[{...}]]" encapsulé dans une chaîne).
+     */
+    private function decodeSlots($value): array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (! is_string($value) || trim($value) === '') {
+            return [];
+        }
+
+        $decoded = json_decode(trim($value), true);
+
+        // deuxième niveau : le cast 'array' renvoie une chaîne si la donnée est doublement encodée
+        if (is_string($decoded)) {
+            $decoded = json_decode(trim($decoded), true);
+        }
+
+        return is_array($decoded) ? $decoded : [];
     }
 
 
@@ -321,67 +341,8 @@ public function create()
 public function store(Request $request)
 {
     try {
+        [$validator, $slots] = $this->validateSchedulePayload($request);
 
-        // 🟦 1) Validation contrôlée
-        $validator = Validator::make($request->all(), [
-            'complex_id'   => 'required|integer',
-            'activity_id'  => 'required|integer',
-            'groupe'       => 'required|string|max:50',
-            'sex'          => 'required|in:H,F,X',
-            'nbr'          => 'nullable|integer|min:0',
-          //  'type_prix'    => 'required|in:pricing_plan,fix',
-            'price'        => 'required|numeric|min:0',
-            'user_id'      => 'nullable|integer|exists:users,id',
-            'time_slots'   => 'required|json',
-            'type_season'  => 'required|string|max:50',
-            'active'       => 'nullable|boolean',
-            'date_debut'   => 'nullable|date',
-            'date_fin'     => 'nullable|date|after_or_equal:date_debut',
-        ]);
-//dd(    $validator) ;
-        
-        $validator->after(function ($validator) use ($request) {
-
-    if ($request->filled('nbr') && $request->filled('complex_id')) {
-
-        $complex = Complex::find($request->complex_id);
-
-        if ($complex && $request->nbr > $complex->capacite_ma) {
-
-            $validator->errors()->add(
-                'nbr',
-                'عدد الأماكن لا يمكن أن يتجاوز سعة المركب (' . $complex->capacite_ma . ').'
-            );
-        }
-    }
-
-    // 🚦 لا يمكن حفظ فوج بدون أي توقيت
-    if ($request->filled('time_slots')) {
-        $slots = json_decode($request->time_slots, true);
-
-        if (!is_array($slots) || $slots === []) {
-            $validator->errors()->add('time_slots', '❌ اختر توقيتاً واحداً على الأقل من التقويم');
-        }
-    }
-
-    // 🚦 التحقق من تداخل الأوقات — يُطبّق فقط إذا كان المركب يمنع التداخل
-    if ($request->filled('complex_id') && $request->filled('time_slots')) {
-
-        $complex = Complex::find($request->complex_id);
-
-        if ($complex && ! $complex->allowsTimeConflict()) {
-
-            foreach ($this->findSlotConflicts((int) $request->complex_id, $request->time_slots) as $conflict) {
-                $validator->errors()->add('time_slots', '⛔ ' . $conflict);
-            }
-        }
-    }
-});
-
-
-        
-        
-        
         if ($validator->fails()) {
             return back()
                 ->withErrors($validator)
@@ -410,9 +371,8 @@ public function store(Request $request)
         $schedule->price              = $request->price ;
 
         $schedule->user_id             = $request->user_id;
-        $schedule->time_slots          = json_encode(
-            $this->normalizeSlots(json_decode($request->time_slots, true))
-        );
+        // tableau (et non chaîne) : le cast 'array' du modèle encode une seule fois
+        $schedule->time_slots          = $slots;
         $schedule->type_season         = $request->type_season;
         $schedule->active              = $request->boolean('active');
         $schedule->date_debut          = $request->date_debut;
@@ -425,11 +385,91 @@ public function store(Request $request)
             ->with('success', '✔ تم حفظ الجدول بنجاح');
 
     } catch (\Throwable $e) {
+        report($e);
 
         return back()
             ->with('error', '❌ خطأ تقني أثناء الحفظ')
-            ->withInput();
-    }
+            ->withInput();    }
+}
+
+
+/**
+ * 🧪 Règles de validation communes à store() et update().
+ *
+ * Retourne [Validator, array<int, array> $slots] où $slots est déjà normalisé.
+ * La normalisation passe AVANT la validation des conflits : on ne peut donc
+ * plus enregistrer un foug dont tous les créneaux ont été rejetés en silence.
+ *
+ * @return array{0: \Illuminate\Validation\Validator, 1: array}
+ */
+private function validateSchedulePayload(Request $request, ?int $excludeScheduleId = null): array
+{
+    $validator = Validator::make($request->all(), [
+        'complex_id'       => 'required|integer|exists:complexes,id',
+        'activity_id'      => 'required|integer|exists:activities,id',
+        'age_category_id'  => 'nullable|integer|exists:age_categories,id',
+        'groupe'           => 'required|string|max:200',
+        'sex'              => 'required|in:H,F,X',
+        'nbr'              => 'nullable|integer|min:0',
+        'price'            => 'nullable|numeric|min:0',
+        'user_id'          => 'nullable|integer|exists:users,id',
+        'time_slots'       => 'required|json',
+        'type_season'      => 'required|in:session,weekly,monthly,quarterly,semester,season,ticket',
+        'active'           => 'nullable|boolean',
+        'date_debut'       => 'nullable|date',
+        'date_fin'         => 'nullable|date|after_or_equal:date_debut',
+    ]);
+
+    // 🎯 les créneaux sont normalisés une seule fois, avant les contrôles métier
+    $slots = $this->normalizeSlots($this->decodeSlots($request->input('time_slots')));
+
+    $validator->after(function ($validator) use ($request, $slots, $excludeScheduleId) {
+
+        // 🪑 capacité du complexe
+        if ($request->filled('nbr') && $request->filled('complex_id')) {
+
+            $complex = Complex::find($request->complex_id);
+
+            if ($complex && $request->nbr > $complex->capacite_ma) {
+
+                $validator->errors()->add(
+                    'nbr',
+                    'عدد الأماكن لا يمكن أن يتجاوز سعة المركب (' . $complex->capacite_ma . ').'
+                );
+            }
+        }
+
+        // 🚦 لا يمكن حفظ فوج بدون أي توقit valide (testé sur les créneaux NORMALISÉS)
+        if ($slots === []) {
+            $validator->errors()->add(
+                'time_slots',
+                $request->filled('time_slots')
+                    ? '❌ لا يوجد توقيت صالح: تأكد أن كل فترة تبدأ قبل أن تنتهي (مثال 08:00 ← 09:00)'
+                    : '❌ اختر توقيتاً واحداً على الأقل من التقويم'
+            );
+        }
+
+        // 🚦 التحقق من تداخل الأوقات — يُطبّق فقط إذا كان المركب يمنع التداخل
+        if ($request->filled('complex_id') && $slots !== []) {
+
+            $complex = Complex::find($request->complex_id);
+
+            if ($complex && ! $complex->allowsTimeConflict()) {
+
+                $conflicts = $this->findSlotConflicts(
+                    (int) $request->complex_id,
+                    $slots,
+                    $excludeScheduleId
+                );
+
+                foreach ($conflicts as $conflict) {
+                    $validator->errors()->add('time_slots', '⛔ ' . $conflict);
+                }
+            }
+        }
+    });
+
+    return [$validator, $slots];
 }
 
 
@@ -476,6 +516,9 @@ public function edit($id)
     $selected_complex  = $ca ? $ca->complex_id : null;
     $selected_activity = $ca ? $ca->activity_id : null;
 
+    // 🔐 مدير المجمع لا يفتح ولا يحفظ جداول مركب آخر
+    $this->assertComplexAccess($admin, $selected_complex);
+
     // ===============================
     //     🔎 الفلاتر حسب complex
     // ===============================
@@ -514,6 +557,12 @@ public function edit($id)
                      ->get();
     }
 
+    // ✅ JSON valide pour le champ caché time_slots (gère l'ancien double-encodage)
+    $timeSlotsJson = json_encode(
+        $this->normalizeSlots($this->decodeSlots($schedule->time_slots)),
+        JSON_UNESCAPED_UNICODE
+    );
+
     return view('admin.schedules.edit', compact(
         'schedule',
         'ageCategories',
@@ -521,8 +570,24 @@ public function edit($id)
         'activities',
         'users',
         'selected_complex',
-        'selected_activity'
+        'selected_activity',
+        'timeSlotsJson'
     ));
+}
+
+
+/**
+ * 🔐 Vérifie qu'un admin de complexe ne manipule que les schedules de son complexe.
+ */
+private function assertComplexAccess($admin, ?int $complexId): void
+{
+    if (is_null($admin) || is_null($admin->complex_id) || $admin->complex_id == 0) {
+        return; // مدير عام
+    }
+
+    if ((int) $complexId !== (int) $admin->complex_id) {
+        abort(403, '⛔ لا يمكنك التعديل على جدول لا يخصّ مركبك');
+    }
 }
 
 
@@ -566,7 +631,7 @@ public function occupiedSlots(Request $request)
         $activity = $schedule->complexActivity->activity ?? null;
         $color = $activity->color ?? '#dc3545';
 
-        $slots = json_decode($schedule->time_slots, true);
+        $slots = $this->decodeSlots($schedule->time_slots);
 
         if (!is_array($slots)) continue;
 
@@ -600,83 +665,31 @@ public function occupiedSlots(Request $request)
 
 public function update(Request $request, $id)
 {
+    $id = (int) $id;
+
     try {
+        $schedule = Schedule::with('complexActivity')->findOrFail($id);
 
-        // 🟦 1) Validation (نفس القواعد)
-        $validator = Validator::make($request->all(), [
-            'complex_id'   => 'required|integer',
-            'activity_id'  => 'required|integer',
-            'groupe'       => 'required|string|max:50',
-            'sex'          => 'required|in:H,F,X',
-            'nbr'          => 'nullable|integer|min:0',
-            'price'        => 'nullable|numeric|min:0',
-            'user_id'      => 'nullable|integer|exists:users,id',
-            'time_slots'   => 'required|json',
-            'type_season'  => 'required|string|max:50',
-            'active'       => 'required|boolean',
-            'date_debut'   => 'nullable|date',
-            'date_fin'     => 'nullable|date|after_or_equal:date_debut',
-        ]);
+        // 🔐 مدير المجمع لا يحفظ إلا جداول مركبه
+        $this->assertComplexAccess(Auth::user(), $schedule->complexActivity->complex_id ?? null);
 
-        // 🟦 1-bis) نفس منطقك: عدم تجاوز سعة المركب
-        $validator->after(function ($validator) use ($request) {
+        // 🟦 1) Validation + créneaux déjà normalisés
+        [$validator, $slots] = $this->validateSchedulePayload($request, $id);
 
-            if ($request->filled('nbr') && $request->filled('complex_id')) {
-
-                $complex = Complex::find($request->complex_id);
-
-                if ($complex && $request->nbr > $complex->capacite_ma) {
-
-                $validator->errors()->add(
-                    'nbr',
-                    'عدد الأماكن لا يمكن أن يتجاوز سعة المركب (' . $complex->capacite_ma . ').'
-                );
-            }
-        }
-
-        // 🚦 لا يمكن حفظ فوج بدون أي توقيت
-        if ($request->filled('time_slots')) {
-            $slots = json_decode($request->time_slots, true);
-
-            if (!is_array($slots) || $slots === []) {
-                $validator->errors()->add('time_slots', '❌ اختر توقيتاً واحداً على الأقل من التقويم');
-            }
-        }
-
-        // 🚦 التحقق من تداخل الأوقات — يُطبّق فقط إذا كان المركب يمنع التداخل
-        if ($request->filled('complex_id') && $request->filled('time_slots')) {
-
-            $complex = Complex::find($request->complex_id);
-
-            if ($complex && ! $complex->allowsTimeConflict()) {
-
-                $conflicts = $this->findSlotConflicts(
-                    (int) $request->complex_id,
-                    $request->time_slots,
-                    (int) $id
-                );
-
-                foreach ($conflicts as $conflict) {
-                    $validator->errors()->add('time_slots', '⛔ ' . $conflict);
-                }
-            }
-        }
-    });
-
-        // 🟦 تنفيذ التحقق
         if ($validator->fails()) {
             return back()
                 ->withErrors($validator)
                 ->withInput();
         }
 
-        // 🟦 نفس نتيجة request()->validate()
         $validated = $validator->validated();
 
-        // 🟦 2) Récupération du schedule
-        $schedule = Schedule::findOrFail($id);
+        // 🔐 le complexe cible doit aussi appartenir à l'administrateur :
+        // sans ce contrôle, un responsable de complexe pourrait déplacer son foug
+        // vers un autre complexe en envoyant complex_id dans la requête
+        $this->assertComplexAccess(Auth::user(), (int) $validated['complex_id']);
 
-        // 🟦 3) Vérifier le lien complex / activity
+        // 🟦 2) Vérifier le lien complex / activity
         $complexActivity = ComplexActivity::where('complex_id', $validated['complex_id'])
             ->where('activity_id', $validated['activity_id'])
             ->first();
@@ -687,21 +700,20 @@ public function update(Request $request, $id)
             ])->withInput();
         }
 
-        // 🟦 4) Mise à jour
+        // 🟦 3) Mise à jour — '?? null' car validated() omet les clés absentes
         $schedule->complex_activity_id = $complexActivity->id;
-        $schedule->age_category_id     = $request->age_category_id;
+        $schedule->age_category_id     = $validated['age_category_id'] ?? null;
         $schedule->groupe              = $validated['groupe'];
         $schedule->sex                 = $validated['sex'];
-        $schedule->nbr                 = $validated['nbr'];
-        $schedule->price               = $validated['price'];
-        $schedule->user_id               = $validated['user_id'];
-        $schedule->time_slots            = json_encode(
-            $this->normalizeSlots(json_decode($validated['time_slots'], true))
-        );
+        $schedule->nbr                 = $validated['nbr'] ?? null;
+        $schedule->price               = $validated['price'] ?? null;
+        $schedule->user_id             = $validated['user_id'] ?? null;
+        // tableau (et non chaîne) : le cast 'array' du modèle encode une seule fois
+        $schedule->time_slots          = $slots;
         $schedule->type_season         = $validated['type_season'];
         $schedule->active              = $request->boolean('active');
-        $schedule->date_debut          = $validated['date_debut'];
-        $schedule->date_fin            = $validated['date_fin'];
+        $schedule->date_debut          = $validated['date_debut'] ?? null;
+        $schedule->date_fin            = $validated['date_fin'] ?? null;
 
         $schedule->save();
 
@@ -709,10 +721,21 @@ public function update(Request $request, $id)
             ->route('admin.schedules.index')
             ->with('success', '✔ تم تعديل الجدول بنجاح');
 
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
+        // 403 (abort) et 404 doivent remonter tels quels, pas être transformés en message flash
+        if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException
+            || $e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
+            throw $e;
+        }
+
+        report($e);
+
+        // le détail technique ne part qu'en mode debug : en production il fuiterait
+        // la structure de la base dans le navigateur
+        $detail = config('app.debug') ? ': ' . $e->getMessage() : '';
 
         return back()
-            ->with('error', '❌ فشل تحديث الجدول: ' . $e->getMessage())
+            ->with('error', '❌ فشل تحديث الجدول' . $detail)
             ->withInput();
     }
 }

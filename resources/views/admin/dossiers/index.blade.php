@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container py-4" style="direction: rtl; text-align: right;">
+<div class="container-fluid px-2 py-4" style="direction: rtl; text-align: right;">
 
    <h3 class="mb-3 fw-bold">📁 دراسة ملفات الرياضيين</h3>
 
@@ -56,7 +56,7 @@
 
 
     {{-- ===== الجدول ===== --}}
-    <div class="table-responsive">
+    <div>
         <table id="dossiersTable"
                class="table table-bordered table-striped table-hover text-center align-middle w-100">
 
@@ -352,26 +352,46 @@ table.dataTable {
     font-size: 12px;
 }
 
+/* ===== toutes les colonnes visibles sans scroll horizontal ===== */
+#dossiersTable {
+    width: 100% !important;
+    table-layout: auto;
+}
+
+#dossiersTable th,
+#dossiersTable td {
+    padding: 4px 5px;
+    white-space: normal;
+    word-break: break-word;
+}
+
 table thead th {
-    font-size: 12px;
-    white-space: nowrap;
+    font-size: 11px;
+    line-height: 1.3;
+}
+
+#dossiersTable .badge {
+    white-space: normal;
 }
 
 .attachments-box {
     background: #f8fafc;
-    padding: 8px;
-    border-radius: 10px;
+    padding: 4px;
+    border-radius: 8px;
+    min-width: 130px;
 }
 
 .attachment-item {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
-    padding: 5px 8px;
-    border-radius: 8px;
+    gap: 3px;
+    padding: 3px 5px;
+    border-radius: 6px;
     background: #ffffff;
     border: 1px solid #e5e7eb;
-    margin-bottom: 5px;
+    margin-bottom: 3px;
 }
 
 .attachment-item:last-child {
@@ -379,13 +399,15 @@ table thead th {
 }
 
 .attachment-title {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
 }
 
 .btn-xs {
     font-size: 11px;
-    padding: 3px 8px;
+    padding: 2px 6px;
+    margin: 1px 0;
+    white-space: nowrap;
 }
 
 .dataTables_filter input {

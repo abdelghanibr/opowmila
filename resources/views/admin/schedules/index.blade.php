@@ -4,6 +4,27 @@
 
 <div class="container py-4" style="direction: rtl; text-align:right;">
 
+    @if (session('success'))
+        <div class="alert alert-success rounded-4 shadow-sm">{{ session('success') }}</div>
+    @endif
+
+    @if (session('error'))
+        <div class="alert alert-danger rounded-4 shadow-sm">
+            <strong>⛔حدث خطأ</strong>
+            <div class="mt-1">{{ session('error') }}</div>
+        </div>
+    @endif
+
+    @if ($errors->any())
+        <div class="alert alert-danger rounded-4 shadow-sm">
+            <ul class="mb-0 fw-semibold">
+                @foreach ($errors->all() as $error)
+                    <li>⚠ {{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     {{-- HEADER --}}
     <div class="p-3 mb-4"
          style="background: linear-gradient(to right, #0a4f88, #0a8a67);

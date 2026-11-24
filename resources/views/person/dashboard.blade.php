@@ -170,6 +170,8 @@
                 <a href="{{ route('person.card') }}" class="btn btn-main btn-sm">عرض بطاقتي</a>
             </div>
         </div>
+
+        @include('messages.partials.inbox-card')
     </div>
 
 

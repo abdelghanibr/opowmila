@@ -19,6 +19,19 @@
 
                 <div class="card-body p-4 p-md-5">
 
+                    @if (session('success'))
+                        <div class="alert alert-success rounded-4 shadow-sm mb-4">
+                            {{ session('success') }}
+                        </div>
+                    @endif
+
+                    @if (session('error'))
+                        <div class="alert alert-danger rounded-4 shadow-sm mb-4">
+                            <strong>⛔تعذّر الحفظ</strong>
+                            <div class="mt-1">{{ session('error') }}</div>
+                        </div>
+                    @endif
+
                     @if ($errors->any())
                         <div class="alert alert-danger rounded-4 shadow-sm mb-4">
                             <ul class="mb-0 fw-semibold">
@@ -28,6 +41,8 @@
                             </ul>
                         </div>
                     @endif
+
+                    <div id="jsAlert" class="alert alert-warning rounded-4 shadow-sm mb-4 d-none"></div>
 
                     <form action="{{ route('admin.schedules.update', $schedule->id) }}" method="POST" id="scheduleForm">
                         @csrf
@@ -83,11 +98,10 @@
                             <!-- الفئة العمرية -->
                             <div class="col-md-6">
                                 <label for="age_category_id" class="form-label fw-semibold text-primary">
-                                    🎯 الفئة العمرية <span class="text-danger">*</span>
+                                    🎯 الفئة العمرية
                                 </label>
                                 <select name="age_category_id" id="age_category_id"
-                                        class="form-select form-control-modern @error('age_category_id') is-invalid @enderror"
-                                        required>
+                                        class="form-select form-control-modern @error('age_category_id') is-invalid @enderror">
                                     <option value="">-- اختر الفئة --</option>
                                     @foreach($ageCategories as $cat)
                                         <option value="{{ $cat->id }}"
@@ -110,6 +124,7 @@
                                        name="groupe"
                                        id="groupe"
                                        value="{{ old('groupe', $schedule->groupe) }}"
+                                       maxlength="200"
                                        class="form-control form-control-modern @error('groupe') is-invalid @enderror"
                                        placeholder="مثال: مجموعة الناشئين B"
                                        required>
@@ -326,10 +341,15 @@
 
                         <!-- التقويم -->
                         <input type="hidden" name="time_slots" id="time_slots"
-                               value="{{ old('time_slots', $schedule->time_slots) }}">
+                               value="{{ old('time_slots', $timeSlotsJson) }}">
                         <div class="card shadow-sm rounded-4 overflow-hidden mt-4">
                             <div class="card-body p-3">
                                 <div id="calendar"></div>
+                                <noscript>
+                                    <div class="alert alert-danger mt-3 mb-0">
+                                        ⚠️ JavaScript est désactivé : impossible de définir les horaires. Activez-le puis rechargez la page.
+                                    </div>
+                                </noscript>
                             </div>
                         </div>
 
@@ -422,12 +442,16 @@
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 <script>
 @php
-    $editSlotsRaw = old('time_slots', $schedule->time_slots ?? '[]');
-    $editSlotsArr = is_string($editSlotsRaw)
-        ? (json_decode($editSlotsRaw, true) ?: [])
-        : ($editSlotsRaw ?: []);
+    // $timeSlotsJson : JSON valide produit par le contrôleur (gère l'ancien double-encodage)
+    // old('time_slots') : ce que l'utilisateur vient de soumettre (àpreserve après une erreur)
+    $editSlotsRaw = old('time_slots', $timeSlotsJson);
+    $editSlotsArr = is_array($editSlotsRaw) ? $editSlotsRaw : json_decode((string) $editSlotsRaw, true);
+    if (is_string($editSlotsArr)) {                 // sécurité : éventuel double-encodage
+        $editSlotsArr = json_decode($editSlotsArr, true);
+    }
+    $editSlotsArr = is_array($editSlotsArr) ? array_values($editSlotsArr) : [];
 @endphp
-let selectedSlots = {!! json_encode(array_values($editSlotsArr), JSON_UNESCAPED_UNICODE) !!};
+let selectedSlots = {!! json_encode($editSlotsArr, JSON_UNESCAPED_UNICODE) !!};
 if (typeof selectedSlots === 'string') {
     try { selectedSlots = JSON.parse(selectedSlots); } catch(e) { selectedSlots = []; }
 }
@@ -447,6 +471,15 @@ function updateHiddenField() {
     );
 }
 
+// 🩺 Affiche un message d'erreur JS dans la page (plus fiable qu'un simple alert)
+function showJsError(message) {
+    const box = document.getElementById('jsAlert');
+    if (!box) { alert(message); return; }
+    box.textContent = message;
+    box.classList.remove('d-none');
+    box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 function conflictsAllowed() {
     const complexId = document.getElementById('complex').value;
     return String({!! json_encode($complexConflictMap) !!}[complexId] || 0) === '1';
@@ -461,11 +494,22 @@ function overlapMinutes(aStart, aEnd, bStart, bEnd) {
     return aStart < bEnd && aEnd > bStart;
 }
 
-document.getElementById('type_prix').addEventListener('change', function () {
-    document.getElementById('fixed_price_box').style.display = this.value === 'fix' ? 'block' : 'none';
-});
+const typePrixEl = document.getElementById('type_prix');
+if (typePrixEl) {
+    typePrixEl.addEventListener('change', function () {
+        const box = document.getElementById('fixed_price_box');
+        if (box) box.style.display = this.value === 'fix' ? 'block' : 'none';
+    });
+}
 
 document.addEventListener('DOMContentLoaded', function () {
+    // ⚠️ FullCalendar est chargé depuis un CDN : sans lui, aucun horaire ne peut être défini
+    if (typeof FullCalendar === 'undefined') {
+        showJsError('⚠️ Bibliothèque FullCalendar non chargée (CDN inaccessible). Impossible de définir les horaires — vérifiez la connexion internet puis rechargez la page.');
+        updateHiddenField();
+        return;
+    }
+
     // 📅 Semaine fixe : dimanche → samedi de la semaine courante
     const now = new Date();
     const weekStart = new Date(now);
@@ -669,7 +713,10 @@ eventDidMount(info) {
         }
 
         fetch(`{{ route('admin.schedules.occupied') }}?complex_id=${complexId}&exclude_schedule={{ $schedule->id }}`)
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.json();
+            })
             .then(events => {
                 events.forEach(ev => {
                     calendar.addEvent({
@@ -679,22 +726,39 @@ eventDidMount(info) {
                         classNames: ['fc-bg-event']
                     });
                 });
-            });
+            })
+            .catch(err => showJsError('⚠️ Impossible de charger les horaires déjà réservés (' + err.message + '). Vous pouvez sauvegarder quand même : le serveur refusera les conflits.'));
     }
 
-    document.getElementById('complex').addEventListener('change', loadOccupiedSlots);
-    document.getElementById('activity').addEventListener('change', loadOccupiedSlots);
+    const complexEl = document.getElementById('complex');
+    const activityEl = document.getElementById('activity');
+    if (complexEl) complexEl.addEventListener('change', loadOccupiedSlots);
+    if (activityEl) activityEl.addEventListener('change', loadOccupiedSlots);
 
     // تحميل فوري عند فتح الصفحة
     loadOccupiedSlots();
 
     calendar.render();
+
+    // 🔁 le champ caché repart toujours d'un JSON propre à l'état courant des créneaux
+    updateHiddenField();
 });
 
-document.getElementById('scheduleForm').addEventListener('submit', function (e) {
+const formEl = document.getElementById('scheduleForm');
+if (formEl) formEl.addEventListener('submit', function (e) {
+    updateHiddenField();
+
     if (selectedSlots.length === 0) {
         e.preventDefault();
-        alert('❌ اختر توقيتاً واحداً على الأقل من التقويم قبل الحفظ');
+        showJsError('❌ اختر توقيتاً واحداً على الأقل من التقويم قبل الحفظ');
+        return;
+    }
+
+    // 🛑 bloque l'envoi d'un créneau invalide (fin ≤ début) que le serveur rejeterait
+    const bad = selectedSlots.filter(s => !s.start || !s.end || s.start >= s.end);
+    if (bad.length) {
+        e.preventDefault();
+        showJsError('❌ فترة غير صالحة: كل توقيت يجب أن يبدأ قبل أن ينتهي (exemple 08:00 ← 09:00).');
     }
 });
 
@@ -702,18 +766,35 @@ document.getElementById('scheduleForm').addEventListener('submit', function (e) 
 function loadCombo() {
     const complex = document.getElementById('complex').value;
     const activity = document.getElementById('activity').value;
+    const hidden = document.getElementById('complex_activity_id');
+
     if (!complex || !activity) {
-        document.getElementById('complex_activity_id').value = '';
+        if (hidden) hidden.value = '';
         return;
     }
+
+    if (!hidden) return;
+
     fetch(`/admin/get-complex-activity?complex_id=${complex}&activity_id=${activity}`)
-        .then(res => res.json())
+        .then(res => {
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return res.json();
+        })
         .then(data => {
-            document.getElementById('complex_activity_id').value = data.id || '';
+            hidden.value = data.id || '';
+            if (!data.id) {
+                showJsError('⚠️ هذا النشاط غير مرتبط بهذا المركب — أضِفه في complex_activities قبل الحفظ.');
+            }
+        })
+        .catch(() => {
+            // حقل hidden غير مطلوب من الخادم (يُعاد حسابه من complex_id + activity_id)
+            hidden.value = '';
         });
 }
-document.getElementById('complex').addEventListener('change', loadCombo);
-document.getElementById('activity').addEventListener('change', loadCombo);
-loadCombo();
+const complex = document.getElementById('complex');
+    const activity = document.getElementById('activity');
+    if (complex) complex.addEventListener('change', loadCombo);
+    if (activity) activity.addEventListener('change', loadCombo);
+    loadCombo();
 </script>
 @endpush

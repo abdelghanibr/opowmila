@@ -393,9 +393,6 @@ body {
             ⚙️ إدارة الرياضيين 
         </a>
 
-        <a href="{{ route('club.cards') }}" class="btn btn-club-outline mt-2 w-100">
-            🪪 طباعة بطاقات اللاعبين
-        </a>
     </div> 
 
     <!-- 📅 النشاطات -->

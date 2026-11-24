@@ -144,11 +144,15 @@ function uploadPath(array $c, string $local, string $remote, int &$count): void
 
 // ---------- Programme principal ----------
 
-if ($argc !== 3) {
-    fail("Usage : php deploy_upload_prod.php <fichier_ou_dossier_local> <dossier_distant>");
+// --yes : confirmation automatique (sans taper OUI)
+$autoYes = in_array('--yes', $argv, true);
+$args    = array_values(array_filter(array_slice($argv, 1), fn ($a) => $a !== '--yes'));
+
+if (count($args) !== 2) {
+    fail("Usage : php deploy_upload_prod.php [--yes] <fichier_ou_dossier_local> <dossier_distant>");
 }
 
-[, $localArg, $remoteDir] = $argv;
+[$localArg, $remoteDir] = $args;
 
 // Chemin local : relatif au projet ou absolu, mais toujours à l'intérieur du projet
 $local = realpath($root . DIRECTORY_SEPARATOR . $localArg) ?: realpath($localArg);
@@ -183,10 +187,14 @@ if ($conn['insecure']) {
 }
 echo "\n";
 
-echo "Vous allez déployer en PRODUCTION. Tapez OUI pour continuer : ";
-$answer = trim((string) fgets(STDIN));
-if ($answer !== 'OUI') {
-    fail("Annulé.");
+if ($autoYes) {
+    echo "Confirmation automatique (--yes).\n";
+} else {
+    echo "Vous allez déployer en PRODUCTION. Tapez OUI pour continuer : ";
+    $answer = trim((string) fgets(STDIN));
+    if ($answer !== 'OUI') {
+        fail("Annulé.");
+    }
 }
 
 try {

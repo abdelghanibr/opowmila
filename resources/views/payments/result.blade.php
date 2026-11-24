@@ -272,6 +272,12 @@
                         </div>
                     </div>
 
+                    @if(!empty($reservation))
+                        <div class="border rounded p-2 mb-3 bg-light">
+                            @include('reservation.partials.price-breakdown', ['r' => $reservation])
+                        </div>
+                    @endif
+
                    
                  
 
